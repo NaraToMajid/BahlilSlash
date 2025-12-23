@@ -1,4 +1,4 @@
-// BAHLIL SLAYER Game Script
+// BAHLIL SLAYER Game Script - Optimized for Mobile
 
 // Supabase Configuration
 const SUPABASE_URL = 'https://bxhrnnwfqlsoviysqcdw.supabase.co';
@@ -35,11 +35,17 @@ let isLoginMode = true;
 let isMobileDevice = false;
 let realtimeSubscription = null;
 
+// Performance variables
+let frameCount = 0;
+let lastFrameTime = performance.now();
+let fps = 60;
+let isLowPerformance = false;
+
 // Combo system
 let comboCount = 0;
 let comboMultiplier = 1;
 let lastCutTime = 0;
-const COMBO_TIME_WINDOW = 2000; // 2 detik untuk combo
+const COMBO_TIME_WINDOW = 2000;
 const MAX_COMBO = 50;
 
 // Game objects
@@ -48,91 +54,98 @@ const fruitHalves = [];
 const totalFruits = 10;
 const bombIndex = 11;
 
-// Sound system
-const audioPoolSize = 10;
+// Sound system - optimized for mobile
+const audioPoolSize = 5; // Reduced for mobile
 let audioPoolIndex = 0;
 const audioElements = [];
 
-// Difficulty settings - Ditinggikan trajectory
+// Performance settings
+const MAX_ON_SCREEN_FRUITS = 15;
+const MIN_FPS_THRESHOLD = 30;
+
+// Difficulty settings - optimized for mobile
 const difficulties = {
     baby: {
         name: "BABY",
-        fruitSpawnRate: 1300,
+        fruitSpawnRate: 1500, // Slower for mobile
         bombChance: 0.05,
         lives: 8,
-        fruitSpeed: 12,
-        maxFruits: 6,
+        fruitSpeed: 10, // Slower for mobile
+        maxFruits: 5, // Reduced for mobile
         scoreMultiplier: 1
     },
     easy: {
         name: "MUDAH",
-        fruitSpawnRate: 1000,
+        fruitSpawnRate: 1200,
         bombChance: 0.1,
         lives: 6,
-        fruitSpeed: 14,
-        maxFruits: 8,
+        fruitSpeed: 12,
+        maxFruits: 6,
         scoreMultiplier: 1.2
     },
     normal: {
         name: "NORMAL",
-        fruitSpawnRate: 800,
+        fruitSpawnRate: 1000,
         bombChance: 0.15,
         lives: 5,
-        fruitSpeed: 16,
-        maxFruits: 10,
+        fruitSpeed: 14,
+        maxFruits: 8,
         scoreMultiplier: 1.5
     },
     medium: {
         name: "MENENGAH",
-        fruitSpawnRate: 650,
+        fruitSpawnRate: 850,
         bombChance: 0.2,
         lives: 4,
-        fruitSpeed: 18,
-        maxFruits: 12,
+        fruitSpeed: 16,
+        maxFruits: 10,
         scoreMultiplier: 2
     },
     hard: {
         name: "SULIT",
-        fruitSpawnRate: 500,
+        fruitSpawnRate: 700,
         bombChance: 0.25,
         lives: 3,
-        fruitSpeed: 20,
-        maxFruits: 15,
+        fruitSpeed: 18,
+        maxFruits: 12,
         scoreMultiplier: 3
     },
     "very-hard": {
         name: "SANGAT SULIT",
-        fruitSpawnRate: 400,
+        fruitSpawnRate: 600,
         bombChance: 0.3,
         lives: 2,
-        fruitSpeed: 22,
-        maxFruits: 18,
+        fruitSpeed: 20,
+        maxFruits: 14,
         scoreMultiplier: 5
     },
     nightmare: {
         name: "MIMPI BURUK",
-        fruitSpawnRate: 300,
+        fruitSpawnRate: 500,
         bombChance: 0.35,
         lives: 2,
-        fruitSpeed: 24,
-        maxFruits: 20,
+        fruitSpeed: 22,
+        maxFruits: 15,
         scoreMultiplier: 8
     },
     impossible: {
         name: "TIDAK MUNGKIN",
-        fruitSpawnRate: 200,
+        fruitSpawnRate: 400,
         bombChance: 0.4,
         lives: 1,
-        fruitSpeed: 26,
-        maxFruits: 25,
+        fruitSpeed: 24,
+        maxFruits: 15,
         scoreMultiplier: 10
     }
 };
 
 // Initialize game
 async function initGame() {
-    // Detect device type
+    // Detect device type and performance
     isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    // Check performance
+    checkDevicePerformance();
     
     // Update instructions for mobile
     if (isMobileDevice) {
@@ -147,7 +160,7 @@ async function initGame() {
         updateAuthUI();
     }
     
-    // Setup particles background
+    // Setup particles background (simplified for mobile)
     createParticles();
     
     // Initialize audio pool
@@ -164,13 +177,83 @@ async function initGame() {
         await syncPendingScores();
     }
     
+    // Start FPS counter
+    startFPSCounter();
+    
     // Hide loading screen
     setTimeout(() => {
         loadingScreen.style.display = 'none';
+        // Apply performance mode if needed
+        if (isLowPerformance) {
+            enablePerformanceMode();
+        }
     }, 1500);
     
     // Setup event listeners
     setupEventListeners();
+}
+
+// Check device performance
+function checkDevicePerformance() {
+    // Check memory
+    const memory = navigator.deviceMemory;
+    const cores = navigator.hardwareConcurrency || 4;
+    
+    // Check if low-end device
+    if (memory && memory < 4) {
+        isLowPerformance = true;
+        console.log("Low performance device detected, enabling performance mode");
+    }
+    
+    // Check for mobile and adjust settings
+    if (isMobileDevice) {
+        // Reduce settings for mobile
+        Object.keys(difficulties).forEach(diff => {
+            difficulties[diff].maxFruits = Math.min(difficulties[diff].maxFruits, 12);
+            difficulties[diff].fruitSpeed = difficulties[diff].fruitSpeed * 0.8;
+        });
+    }
+}
+
+// Enable performance mode
+function enablePerformanceMode() {
+    document.body.classList.add('perf-mode');
+    
+    // Reduce visual effects
+    const particles = document.getElementById('particles');
+    if (particles) {
+        particles.innerHTML = '';
+    }
+    
+    // Disable some animations
+    document.querySelectorAll('.cut-visual, .trail-dot').forEach(el => {
+        el.style.display = 'none';
+    });
+}
+
+// Start FPS counter for performance monitoring
+function startFPSCounter() {
+    function updateFPS() {
+        const now = performance.now();
+        frameCount++;
+        
+        if (now >= lastFrameTime + 1000) {
+            fps = Math.round((frameCount * 1000) / (now - lastFrameTime));
+            frameCount = 0;
+            lastFrameTime = now;
+            
+            // Auto-adjust performance if FPS is low
+            if (fps < MIN_FPS_THRESHOLD && active && !isLowPerformance) {
+                console.log(`Low FPS detected: ${fps}, enabling performance mode`);
+                isLowPerformance = true;
+                enablePerformanceMode();
+            }
+        }
+        
+        requestAnimationFrame(updateFPS);
+    }
+    
+    updateFPS();
 }
 
 // Update auth UI (show/hide logout button)
@@ -279,8 +362,9 @@ function adjustUIForPortrait() {
         
         // Adjust score
         const scoreElement = document.getElementById('score');
-        scoreElement.style.fontSize = '2rem';
+        scoreElement.style.fontSize = '1.8rem';
         scoreElement.style.padding = '5px 15px';
+        scoreElement.style.minWidth = '90px';
         
         // Adjust hearts
         hearts.forEach(heart => {
@@ -290,7 +374,7 @@ function adjustUIForPortrait() {
         
         // Adjust combo text
         comboText.style.fontSize = '1.4rem';
-        multiplierText.style.fontSize = '2rem';
+        multiplierText.style.fontSize = '1.8rem';
         
         // Adjust game UI position
         const gameUI = document.getElementById('gameUI');
@@ -307,15 +391,20 @@ function adjustUIForPortrait() {
             mobileInstruction.style.transform = 'translateX(-50%)';
             mobileInstruction.style.background = 'rgba(0, 0, 0, 0.7)';
             mobileInstruction.style.color = '#ff8c00';
-            mobileInstruction.style.padding = '10px 20px';
+            mobileInstruction.style.padding = '8px 15px';
             mobileInstruction.style.borderRadius = '10px';
-            mobileInstruction.style.fontSize = '0.9rem';
+            mobileInstruction.style.fontSize = '0.8rem';
             mobileInstruction.style.textAlign = 'center';
             mobileInstruction.style.zIndex = '100';
             mobileInstruction.style.border = '1px solid rgba(255, 140, 0, 0.3)';
-            mobileInstruction.textContent = 'Gunakan jari untuk memotong buah';
+            mobileInstruction.textContent = 'Sentuh buah dengan jari, hindari bom merah';
             
             document.getElementById('gameContainer').appendChild(mobileInstruction);
+        }
+        
+        // Disable trail effect on mobile
+        if (cursorTrail) {
+            cursorTrail.style.display = 'none';
         }
     }
 }
@@ -335,7 +424,6 @@ function setupRealtimeSubscription() {
                 table: 'leaderboard-bahlil' 
             }, 
             (payload) => {
-                console.log('Realtime update:', payload);
                 // Refresh leaderboard ketika ada perubahan
                 if (leaderboardScreen.style.display === 'flex') {
                     loadLeaderboard();
@@ -345,32 +433,38 @@ function setupRealtimeSubscription() {
         .subscribe();
 }
 
-// Create particles background
+// Create particles background (simplified for mobile)
 function createParticles() {
     const particlesContainer = document.getElementById('particles');
-    for (let i = 0; i < 50; i++) {
+    if (!particlesContainer || isLowPerformance) return;
+    
+    const particleCount = isMobileDevice ? 20 : 30;
+    
+    for (let i = 0; i < particleCount; i++) {
         const particle = document.createElement('div');
         particle.style.position = 'absolute';
-        particle.style.width = Math.random() * 3 + 1 + 'px';
+        particle.style.width = Math.random() * 2 + 1 + 'px';
         particle.style.height = particle.style.width;
-        particle.style.background = 'rgba(255, 94, 0, 0.2)';
+        particle.style.background = 'rgba(255, 94, 0, 0.15)';
         particle.style.borderRadius = '50%';
         particle.style.left = Math.random() * 100 + '%';
         particle.style.top = Math.random() * 100 + '%';
-        particle.style.opacity = Math.random() * 0.5 + 0.1;
+        particle.style.opacity = Math.random() * 0.3 + 0.1;
         
         particlesContainer.appendChild(particle);
         
-        // Animate particle
-        animateParticle(particle);
+        // Animate particle (simplified for mobile)
+        if (!isMobileDevice) {
+            animateParticle(particle);
+        }
     }
 }
 
 function animateParticle(particle) {
     let x = parseFloat(particle.style.left);
     let y = parseFloat(particle.style.top);
-    let speedX = (Math.random() - 0.5) * 0.3;
-    let speedY = (Math.random() - 0.5) * 0.3;
+    let speedX = (Math.random() - 0.5) * 0.2;
+    let speedY = (Math.random() - 0.5) * 0.2;
     
     function move() {
         x += speedX;
@@ -391,18 +485,22 @@ function animateParticle(particle) {
     move();
 }
 
-// Initialize audio pool for overlapping sounds
+// Initialize audio pool for overlapping sounds (optimized for mobile)
 function initAudioPool() {
     for (let i = 0; i < audioPoolSize; i++) {
         const audio = document.createElement('audio');
         audio.preload = 'auto';
+        audio.volume = 0.7; // Reduced volume for mobile
         audioPool.appendChild(audio);
         audioElements.push(audio);
     }
 }
 
-// Play sound from pool (allows overlapping)
+// Play sound from pool (allows overlapping) - optimized for mobile
 function playSoundFromPool(soundType) {
+    // Don't play sounds on low performance mode
+    if (isLowPerformance) return;
+    
     const audio = audioElements[audioPoolIndex];
     
     if (soundType === 'fruit') {
@@ -412,19 +510,23 @@ function playSoundFromPool(soundType) {
     }
     
     audio.currentTime = 0;
-    audio.play().catch(e => {
-        // Silently ignore audio play errors
-        console.log("Audio play failed:", e);
-    });
+    
+    // Play with error handling
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(e => {
+            // Silently ignore audio play errors on mobile
+        });
+    }
     
     // Move to next audio element in pool
     audioPoolIndex = (audioPoolIndex + 1) % audioPoolSize;
 }
 
-// Create cursor trail effect
+// Create cursor trail effect (disabled on mobile)
 function createTrailDot(x, y) {
-    // Don't create trail on mobile for performance
-    if (isMobileDevice) return;
+    // Always disable on mobile for performance
+    if (isMobileDevice || isLowPerformance || !cursorTrail) return;
     
     const dot = document.createElement('div');
     dot.className = 'trail-dot';
@@ -502,9 +604,14 @@ function calculateMultiplier() {
     updateComboDisplay();
 }
 
-// Spawn fruit or bomb
+// Spawn fruit or bomb - optimized for mobile
 function spawnFruit(settings) {
     if (!active || activeFruits.length >= settings.maxFruits) return;
+    
+    // Check FPS and adjust spawn rate
+    if (fps < MIN_FPS_THRESHOLD && Math.random() > 0.7) {
+        return; // Skip some spawns if FPS is low
+    }
     
     const isBomb = Math.random() < settings.bombChance;
     const itemIndex = isBomb ? bombIndex : Math.floor(Math.random() * totalFruits) + 1;
@@ -517,14 +624,15 @@ function spawnFruit(settings) {
     const img = document.createElement("img");
     img.src = `foto${itemIndex}.webp`;
     img.alt = isBomb ? "Bom" : "Buah";
+    img.loading = "lazy"; // Lazy loading for images
     div.appendChild(img);
     
     // Adjust size for mobile
     if (isMobileDevice) {
-        div.style.width = '70px';
-        div.style.height = '70px';
-        img.style.width = '70px';
-        img.style.height = '70px';
+        div.style.width = '65px';
+        div.style.height = '65px';
+        img.style.width = '65px';
+        img.style.height = '65px';
     }
     
     // Start from bottom with some variation
@@ -536,53 +644,67 @@ function spawnFruit(settings) {
     
     gameArea.appendChild(div);
     
-    // Physics - launch upward with higher trajectory
+    // Physics - launch upward (optimized for mobile)
     let posX = startX;
     let posY = startY;
-    let velocityX = (Math.random() - 0.5) * 4;
-    let velocityY = -(settings.fruitSpeed + Math.random() * 4);
+    let velocityX = (Math.random() - 0.5) * 3;
+    let velocityY = -(settings.fruitSpeed + Math.random() * 3);
     
     const fruitId = div.dataset.id;
-    const anim = setInterval(() => {
-        if (!active) {
-            clearInterval(anim);
-            return;
-        }
+    let lastUpdate = performance.now();
+    
+    const updatePosition = () => {
+        if (!active) return;
+        
+        const now = performance.now();
+        const delta = Math.min((now - lastUpdate) / 16, 2); // Cap delta for performance
         
         // Apply gravity
-        velocityY += 0.5;
+        velocityY += 0.5 * delta;
         
         // Update position
-        posX += velocityX;
-        posY += velocityY;
+        posX += velocityX * delta;
+        posY += velocityY * delta;
         
         div.style.left = posX + "px";
         div.style.top = posY + "px";
         
+        lastUpdate = now;
+        
         // Remove if out of screen
-        if (posY > window.innerHeight + 100 || posY < -100) {
-            clearInterval(anim);
-            div.remove();
+        if (posY > window.innerHeight + 100 || posY < -100 || 
+            posX < -100 || posX > window.innerWidth + 100) {
             
             const index = activeFruits.findIndex(f => f.id === fruitId);
             if (index > -1) {
                 activeFruits.splice(index, 1);
             }
+            div.remove();
+            return;
         }
-    }, 16);
+        
+        // Continue animation
+        if (active) {
+            requestAnimationFrame(updatePosition);
+        }
+    };
+    
+    // Start animation
+    requestAnimationFrame(updatePosition);
     
     activeFruits.push({
         id: fruitId,
         element: div,
-        animId: anim,
         isBomb: isBomb,
         posX: posX,
         posY: posY
     });
 }
 
-// Create cut visual effect at cursor position
+// Create cut visual effect at cursor position (simplified for mobile)
 function createCutVisual(x, y) {
+    if (isLowPerformance || isMobileDevice) return;
+    
     const visual = document.createElement("div");
     visual.className = "cut-visual";
     visual.style.left = (x - 4) + "px";
@@ -599,38 +721,34 @@ function createCutVisual(x, y) {
     }, 200);
 }
 
-// Check if cursor/touch hits fruit
+// Check if cursor/touch hits fruit - optimized for mobile
 function checkCursorHit(x, y) {
     if (!active) return false;
     
-    let hitSomething = false;
-    
-    // Check all active fruits
+    // Use simple bounding box check for performance
     for (let i = activeFruits.length - 1; i >= 0; i--) {
         const fruit = activeFruits[i];
         const rect = fruit.element.getBoundingClientRect();
         
-        // Check if cursor is within fruit bounds
+        // Simple bounding box check (faster than complex collision)
         if (x >= rect.left && x <= rect.right && 
             y >= rect.top && y <= rect.bottom) {
             
-            hitSomething = true;
             handleFruitHit(fruit, rect.left + rect.width / 2, rect.top + rect.height / 2);
-            break; // Only hit one fruit at a time
+            return true; // Only hit one fruit at a time
         }
     }
     
-    return hitSomething;
+    return false;
 }
 
-// Handle fruit hit
+// Handle fruit hit - optimized for mobile
 function handleFruitHit(fruit, centerX, centerY) {
-    // Stop animation
-    clearInterval(fruit.animId);
-    
-    // Create cut effect
-    createCutEffect(centerX, centerY);
-    createCutVisual(centerX, centerY);
+    // Create cut effect (simplified for mobile)
+    if (!isLowPerformance) {
+        createCutEffect(centerX, centerY);
+        createCutVisual(centerX, centerY);
+    }
     
     // Remove from active array
     const index = activeFruits.findIndex(f => f.id === fruit.id);
@@ -657,8 +775,10 @@ function handleFruitHit(fruit, centerX, centerY) {
     const imgSrc = fruit.element.querySelector('img').src;
     const cutAngle = Math.random() * Math.PI * 2;
     
-    // Create two halves
-    createFruitHalves(imgSrc, centerX, centerY, cutAngle);
+    // Create two halves (simplified for mobile)
+    if (!isLowPerformance) {
+        createFruitHalves(imgSrc, centerX, centerY, cutAngle);
+    }
     
     // Calculate score with multiplier
     const settings = difficulties[currentDifficulty];
@@ -670,11 +790,14 @@ function handleFruitHit(fruit, centerX, centerY) {
     createFloatingScore(centerX, centerY, `+${points}`);
 }
 
-// Create fruit halves
+// Create fruit halves (simplified for mobile)
 function createFruitHalves(imgSrc, x, y, cutAngle) {
     // Adjust size for mobile
-    const size = isMobileDevice ? 70 : 85;
+    const size = isMobileDevice ? 65 : 85;
     const halfSize = size / 2;
+    
+    // Create halves only if not in low performance mode
+    if (isLowPerformance) return;
     
     // Create top half
     const topHalf = document.createElement("div");
@@ -687,6 +810,7 @@ function createFruitHalves(imgSrc, x, y, cutAngle) {
     topImg.style.clipPath = "inset(0 0 50% 0)";
     topImg.style.width = size + "px";
     topImg.style.height = size + "px";
+    topImg.loading = "lazy";
     topHalf.appendChild(topImg);
     
     // Create bottom half
@@ -700,73 +824,85 @@ function createFruitHalves(imgSrc, x, y, cutAngle) {
     bottomImg.style.clipPath = "inset(50% 0 0 0)";
     bottomImg.style.width = size + "px";
     bottomImg.style.height = size + "px";
+    bottomImg.loading = "lazy";
     bottomHalf.appendChild(bottomImg);
     
     gameArea.appendChild(topHalf);
     gameArea.appendChild(bottomHalf);
     
-    // Apply physics to halves
-    const force = 6;
+    // Apply physics to halves (simplified)
+    const force = isMobileDevice ? 4 : 6;
     const topVelocity = {
         x: Math.cos(cutAngle) * force,
-        y: Math.sin(cutAngle) * force - 4
+        y: Math.sin(cutAngle) * force - 3
     };
     
     const bottomVelocity = {
         x: Math.cos(cutAngle + Math.PI) * force,
-        y: Math.sin(cutAngle + Math.PI) * force + 4
+        y: Math.sin(cutAngle + Math.PI) * force + 3
     };
     
     animateFruitHalf(topHalf, topVelocity);
     animateFruitHalf(bottomHalf, bottomVelocity);
 }
 
-// Animate fruit half
+// Animate fruit half (optimized)
 function animateFruitHalf(half, velocity) {
     let posX = parseFloat(half.style.left);
     let posY = parseFloat(half.style.top);
     let velX = velocity.x;
     let velY = velocity.y;
-    let rotation = 0;
-    let rotationSpeed = (Math.random() - 0.5) * 10;
+    let lastUpdate = performance.now();
     
-    const anim = setInterval(() => {
+    const animate = () => {
+        const now = performance.now();
+        const delta = Math.min((now - lastUpdate) / 16, 2);
+        
         // Gravity
-        velY += 0.5;
+        velY += 0.5 * delta;
         
         // Update position
-        posX += velX;
-        posY += velY;
-        rotation += rotationSpeed;
+        posX += velX * delta;
+        posY += velY * delta;
         
         half.style.left = posX + "px";
         half.style.top = posY + "px";
-        half.style.transform = `rotate(${rotation}deg)`;
+        
+        lastUpdate = now;
         
         // Remove if out of screen
         if (posY > window.innerHeight + 100 || posY < -100 || 
             posX < -100 || posX > window.innerWidth + 100) {
-            clearInterval(anim);
             half.remove();
+            return;
         }
-    }, 16);
+        
+        requestAnimationFrame(animate);
+    };
+    
+    requestAnimationFrame(animate);
 }
 
-// Create cut effect
+// Create cut effect (simplified for mobile)
 function createCutEffect(x, y) {
+    if (isLowPerformance) return;
+    
     const effect = document.createElement("div");
     effect.className = "cut-effect";
-    effect.style.left = (x - 60) + "px";
-    effect.style.top = (y - 60) + "px";
+    const size = isMobileDevice ? 90 : 120;
+    effect.style.left = (x - size/2) + "px";
+    effect.style.top = (y - size/2) + "px";
+    effect.style.width = size + "px";
+    effect.style.height = size + "px";
     gameArea.appendChild(effect);
     
     setTimeout(() => effect.remove(), 500);
 }
 
-// Create bomb explosion
+// Create bomb explosion (optimized for mobile)
 function createBombExplosion(x, y) {
     // Adjust size for mobile
-    const explosionSize = isMobileDevice ? 250 : 400;
+    const explosionSize = isMobileDevice ? 200 : 300;
     
     // Main explosion effect
     const explosion = document.createElement("div");
@@ -777,38 +913,43 @@ function createBombExplosion(x, y) {
     explosion.style.height = explosionSize + "px";
     gameArea.appendChild(explosion);
     
-    // Fire particles
-    for (let i = 0; i < 35; i++) {
-        setTimeout(() => {
-            const particle = document.createElement("div");
-            particle.className = "bomb-particle";
-            particle.style.left = x + "px";
-            particle.style.top = y + "px";
-            
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 80 + Math.random() * 200;
-            const tx = Math.cos(angle) * distance;
-            const ty = Math.sin(angle) * distance;
-            
-            particle.style.setProperty("--tx", tx + "px");
-            particle.style.setProperty("--ty", ty + "px");
-            
-            gameArea.appendChild(particle);
-            
-            setTimeout(() => particle.remove(), 1500);
-        }, i * 10);
+    // Fire particles (reduced for mobile)
+    if (!isLowPerformance) {
+        const particleCount = isMobileDevice ? 15 : 25;
+        for (let i = 0; i < particleCount; i++) {
+            setTimeout(() => {
+                const particle = document.createElement("div");
+                particle.className = "bomb-particle";
+                particle.style.left = x + "px";
+                particle.style.top = y + "px";
+                
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 60 + Math.random() * 120;
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance;
+                
+                particle.style.setProperty("--tx", tx + "px");
+                particle.style.setProperty("--ty", ty + "px");
+                
+                gameArea.appendChild(particle);
+                
+                setTimeout(() => particle.remove(), 1000);
+            }, i * 20);
+        }
     }
     
     setTimeout(() => explosion.remove(), 700);
     
-    // Screen shake effect
-    gameArea.style.transform = 'translate(5px, 5px)';
-    setTimeout(() => {
-        gameArea.style.transform = 'translate(-5px, -5px)';
+    // Screen shake effect (reduced for mobile)
+    if (!isMobileDevice) {
+        gameArea.style.transform = 'translate(3px, 3px)';
         setTimeout(() => {
-            gameArea.style.transform = 'translate(0, 0)';
-        }, 50);
-    }, 50);
+            gameArea.style.transform = 'translate(-3px, -3px)';
+            setTimeout(() => {
+                gameArea.style.transform = 'translate(0, 0)';
+            }, 30);
+        }, 30);
+    }
 }
 
 // Create floating score
@@ -821,16 +962,16 @@ function createFloatingScore(x, y, text) {
     
     // Adjust font size for mobile
     if (isMobileDevice) {
-        floating.style.fontSize = '1.2rem';
+        floating.style.fontSize = '1.1rem';
     }
     
     // Color based on multiplier
     if (comboMultiplier >= 5) {
         floating.style.color = '#ff00ff';
-        floating.style.textShadow = '0 0 15px rgba(255, 0, 255, 0.8)';
+        floating.style.textShadow = '0 0 10px rgba(255, 0, 255, 0.6)';
     } else if (comboMultiplier >= 3) {
         floating.style.color = '#00ffff';
-        floating.style.textShadow = '0 0 15px rgba(0, 255, 255, 0.8)';
+        floating.style.textShadow = '0 0 10px rgba(0, 255, 255, 0.6)';
     }
     
     gameArea.appendChild(floating);
@@ -864,7 +1005,6 @@ async function gameOver() {
     
     // Clear all fruits
     activeFruits.forEach(fruit => {
-        clearInterval(fruit.animId);
         fruit.element.remove();
     });
     activeFruits.length = 0;
@@ -971,7 +1111,6 @@ async function saveScoreToSupabase() {
         
         if (error) throw error;
         
-        console.log('Score updated in Supabase');
     } else {
         // INSERT - User baru di leaderboard
         const { error } = await supabaseClient
@@ -986,8 +1125,6 @@ async function saveScoreToSupabase() {
             });
         
         if (error) throw error;
-        
-        console.log('Score inserted to Supabase');
     }
 }
 
@@ -1038,7 +1175,6 @@ async function syncPendingScores() {
         
         // Clear pending scores setelah berhasil sync
         localStorage.removeItem('bahlilPendingScores');
-        console.log('Pending scores synced successfully');
         
     } catch (error) {
         console.error('Error syncing pending scores:', error);
@@ -1052,7 +1188,7 @@ function startGameWithDifficulty(difficulty) {
     
     // Reset game state (hanya skor game ini, bukan total)
     gameArea.innerHTML = "";
-    score = 0; // Reset skor game ini saja
+    score = 0;
     lives = settings.lives;
     active = true;
     resetCombo();
@@ -1085,19 +1221,33 @@ function startGameWithDifficulty(difficulty) {
     startGameLoop(settings);
 }
 
-// Game loop
+// Game loop - optimized for mobile
 function startGameLoop(settings) {
-    // Spawn fruits periodically
-    window.spawnInterval = setInterval(() => {
-        if (active) {
-            spawnFruit(settings);
-        }
-    }, settings.fruitSpawnRate);
+    let lastSpawnTime = 0;
+    const spawnRate = settings.fruitSpawnRate;
     
-    // Initial spawn
-    for (let i = 0; i < 3; i++) {
-        setTimeout(() => spawnFruit(settings), i * 300);
+    const gameLoop = (timestamp) => {
+        if (!active) return;
+        
+        // Spawn fruits based on time
+        if (timestamp - lastSpawnTime > spawnRate) {
+            spawnFruit(settings);
+            lastSpawnTime = timestamp;
+        }
+        
+        // Continue loop
+        if (active) {
+            requestAnimationFrame(gameLoop);
+        }
+    };
+    
+    // Start initial spawns
+    for (let i = 0; i < 2; i++) {
+        setTimeout(() => spawnFruit(settings), i * 500);
     }
+    
+    // Start game loop
+    requestAnimationFrame(gameLoop);
 }
 
 // Authentication functions
@@ -1155,7 +1305,7 @@ async function loadLeaderboard() {
             .from('leaderboard-bahlil')
             .select('*')
             .order('total_score', { ascending: false })
-            .limit(20);
+            .limit(15); // Reduced for mobile
         
         if (error) throw error;
         
@@ -1174,6 +1324,7 @@ async function loadLeaderboard() {
                 if (item.difficulties_played && Array.isArray(item.difficulties_played)) {
                     const uniqueDifficulties = [...new Set(item.difficulties_played)];
                     difficultiesText = uniqueDifficulties
+                        .slice(0, 3) // Limit to 3 difficulties for mobile
                         .map(diff => {
                             const diffName = difficulties[diff]?.name || diff.toUpperCase();
                             return `<span class="diff-badge">${diffName}</span>`;
@@ -1248,40 +1399,48 @@ async function loadLeaderboard() {
     }
 }
 
-// Setup all event listeners
+// Setup all event listeners - optimized for mobile
 function setupEventListeners() {
-    // Mouse movement detection with trail
+    // Touch detection for mobile
+    let isTouching = false;
+    let lastTouchTime = 0;
+    
+    // Mouse movement detection with trail (disabled on mobile)
     let lastMouseX = 0;
     let lastMouseY = 0;
     let trailTimer = 0;
     
-    document.addEventListener("mousemove", (e) => {
-        if (!active) return;
-        
-        const x = e.clientX;
-        const y = e.clientY;
-        
-        // Create trail dots periodically
-        const now = Date.now();
-        if (now - trailTimer > 30) { // Create trail every 30ms
-            createTrailDot(x, y);
-            trailTimer = now;
-        }
-        
-        // Check if cursor hits fruit
-        if (checkCursorHit(x, y)) {
-            // Visual feedback
-            document.body.style.cursor = "none";
-            setTimeout(() => {
-                document.body.style.cursor = "crosshair";
-            }, 100);
-        }
-        
-        lastMouseX = x;
-        lastMouseY = y;
-    });
+    if (!isMobileDevice) {
+        document.addEventListener("mousemove", (e) => {
+            if (!active) return;
+            
+            const x = e.clientX;
+            const y = e.clientY;
+            
+            // Create trail dots periodically (disabled on low performance)
+            if (!isLowPerformance) {
+                const now = Date.now();
+                if (now - trailTimer > 50) {
+                    createTrailDot(x, y);
+                    trailTimer = now;
+                }
+            }
+            
+            // Check if cursor hits fruit
+            if (checkCursorHit(x, y)) {
+                // Visual feedback
+                document.body.style.cursor = "none";
+                setTimeout(() => {
+                    document.body.style.cursor = "crosshair";
+                }, 100);
+            }
+            
+            lastMouseX = x;
+            lastMouseY = y;
+        });
+    }
     
-    // Touch support
+    // Touch support for mobile - optimized
     document.addEventListener("touchmove", (e) => {
         if (!active) return;
         e.preventDefault();
@@ -1290,18 +1449,16 @@ function setupEventListeners() {
         const x = touch.clientX;
         const y = touch.clientY;
         
-        // Create trail dots for mobile (optional, can be disabled for performance)
+        // Check if touch hits fruit (with cooldown for performance)
         const now = Date.now();
-        if (!isMobileDevice && now - trailTimer > 30) {
-            createTrailDot(x, y);
-            trailTimer = now;
+        if (now - lastTouchTime > 50) { // 50ms cooldown
+            checkCursorHit(x, y);
+            lastTouchTime = now;
         }
-        
-        checkCursorHit(x, y);
         
         lastMouseX = x;
         lastMouseY = y;
-    });
+    }, { passive: false });
     
     // Touch start for mobile
     document.addEventListener("touchstart", (e) => {
@@ -1313,6 +1470,11 @@ function setupEventListeners() {
         const y = touch.clientY;
         
         checkCursorHit(x, y);
+        isTouching = true;
+    });
+    
+    document.addEventListener("touchend", () => {
+        isTouching = false;
     });
     
     // Difficulty buttons
@@ -1448,28 +1610,39 @@ function setupEventListeners() {
     // Handle window resize
     window.addEventListener('resize', () => {
         adjustUIForPortrait();
-        
-        if (active) {
-            // Reposition fruits based on new window size
-            activeFruits.forEach(fruit => {
-                const rect = fruit.element.getBoundingClientRect();
-                fruit.posX = rect.left;
-                fruit.posY = rect.top;
-            });
-        }
     });
     
     // Handle orientation change
     window.addEventListener('orientationchange', () => {
-        setTimeout(adjustUIForPortrait, 100);
+        setTimeout(() => {
+            adjustUIForPortrait();
+            // Clear and restart game if active
+            if (active && currentDifficulty) {
+                const tempDifficulty = currentDifficulty;
+                gameOver();
+                setTimeout(() => {
+                    startGameWithDifficulty(tempDifficulty);
+                }, 100);
+            }
+        }, 100);
     });
     
-    // Auto refresh leaderboard every 30 seconds if open
+    // Auto refresh leaderboard every 60 seconds if open (increased for mobile)
     setInterval(() => {
         if (leaderboardScreen.style.display === 'flex') {
             loadLeaderboard();
         }
-    }, 30000);
+    }, 60000);
+    
+    // Performance optimization: reduce animation when page is hidden
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            // Pause game when tab is hidden
+            if (active) {
+                active = false;
+            }
+        }
+    });
 }
 
 // Initialize game when page loads
