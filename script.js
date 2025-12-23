@@ -32,6 +32,7 @@ let active = false;
 let currentDifficulty = null;
 let user = null;
 let isLoginMode = true;
+let isMobileDevice = false;
 
 // Combo system
 let comboCount = 0;
@@ -129,6 +130,15 @@ const difficulties = {
 
 // Initialize game
 async function initGame() {
+    // Detect device type
+    isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    // Update instructions for mobile
+    if (isMobileDevice) {
+        document.querySelector('.subtitle').textContent = 
+            "SENTUH buah dengan JARI, hindari bom merah. Setiap sentuhan meningkatkan combo!";
+    }
+    
     // Check if user is logged in
     const savedUser = localStorage.getItem('bahlilUser');
     if (savedUser) {
@@ -141,6 +151,9 @@ async function initGame() {
     // Initialize audio pool
     initAudioPool();
     
+    // Adjust UI for portrait mode
+    adjustUIForPortrait();
+    
     // Hide loading screen
     setTimeout(() => {
         loadingScreen.style.display = 'none';
@@ -148,6 +161,62 @@ async function initGame() {
     
     // Setup event listeners
     setupEventListeners();
+}
+
+// Adjust UI for portrait mode
+function adjustUIForPortrait() {
+    const isPortrait = window.innerHeight > window.innerWidth;
+    
+    if (isPortrait) {
+        // Adjust header
+        const header = document.getElementById('header');
+        header.style.padding = '10px 15px';
+        
+        // Adjust logo
+        const logoText = document.querySelector('.logo-text');
+        logoText.style.fontSize = '1.2rem';
+        
+        // Adjust score
+        const scoreElement = document.getElementById('score');
+        scoreElement.style.fontSize = '2rem';
+        scoreElement.style.padding = '5px 15px';
+        
+        // Adjust hearts
+        hearts.forEach(heart => {
+            heart.style.width = '25px';
+            heart.style.height = '25px';
+        });
+        
+        // Adjust combo text
+        comboText.style.fontSize = '1.4rem';
+        multiplierText.style.fontSize = '2rem';
+        
+        // Adjust game UI position
+        const gameUI = document.getElementById('gameUI');
+        gameUI.style.top = '60px';
+        gameUI.style.padding = '0 15px';
+        
+        // Add mobile instructions
+        if (!document.getElementById('mobileInstruction')) {
+            const mobileInstruction = document.createElement('div');
+            mobileInstruction.id = 'mobileInstruction';
+            mobileInstruction.style.position = 'fixed';
+            mobileInstruction.style.bottom = '20px';
+            mobileInstruction.style.left = '50%';
+            mobileInstruction.style.transform = 'translateX(-50%)';
+            mobileInstruction.style.background = 'rgba(0, 0, 0, 0.7)';
+            mobileInstruction.style.color = '#ff8c00';
+            mobileInstruction.style.padding = '10px 20px';
+            mobileInstruction.style.borderRadius = '10px';
+            mobileInstruction.style.fontSize = '0.9rem';
+            mobileInstruction.style.textAlign = 'center';
+            mobileInstruction.style.zIndex = '100';
+            mobileInstruction.style.border = '1px solid rgba(255, 140, 0, 0.3)';
+            mobileInstruction.textContent = 'Gunakan jari untuk memotong buah';
+            
+            document.getElementById('gameContainer').appendChild(mobileInstruction);
+        }
+    }
 }
 
 // Create particles background
@@ -228,6 +297,9 @@ function playSoundFromPool(soundType) {
 
 // Create cursor trail effect
 function createTrailDot(x, y) {
+    // Don't create trail on mobile for performance
+    if (isMobileDevice) return;
+    
     const dot = document.createElement('div');
     dot.className = 'trail-dot';
     dot.style.left = (x - 3) + 'px';
@@ -321,8 +393,16 @@ function spawnFruit(settings) {
     img.alt = isBomb ? "Bom" : "Buah";
     div.appendChild(img);
     
+    // Adjust size for mobile
+    if (isMobileDevice) {
+        div.style.width = '70px';
+        div.style.height = '70px';
+        img.style.width = '70px';
+        img.style.height = '70px';
+    }
+    
     // Start from bottom with some variation
-    const startX = Math.random() * (window.innerWidth - 85);
+    const startX = Math.random() * (window.innerWidth - (isMobileDevice ? 70 : 85));
     const startY = window.innerHeight + 50;
     
     div.style.left = startX + "px";
@@ -393,7 +473,7 @@ function createCutVisual(x, y) {
     }, 200);
 }
 
-// Check if cursor hits fruit
+// Check if cursor/touch hits fruit
 function checkCursorHit(x, y) {
     if (!active) return false;
     
@@ -458,7 +538,7 @@ function handleFruitHit(fruit, centerX, centerY) {
     const settings = difficulties[currentDifficulty];
     const points = Math.floor(10 * settings.scoreMultiplier * comboMultiplier);
     score += points;
-    scoreElement.textContent = score;
+    scoreElement.textContent = score.toLocaleString();
     
     // Show floating score
     createFloatingScore(centerX, centerY, `+${points}`);
@@ -466,26 +546,34 @@ function handleFruitHit(fruit, centerX, centerY) {
 
 // Create fruit halves
 function createFruitHalves(imgSrc, x, y, cutAngle) {
+    // Adjust size for mobile
+    const size = isMobileDevice ? 70 : 85;
+    const halfSize = size / 2;
+    
     // Create top half
     const topHalf = document.createElement("div");
     topHalf.className = "fruit-half";
-    topHalf.style.left = (x - 42.5) + "px";
-    topHalf.style.top = (y - 42.5) + "px";
+    topHalf.style.left = (x - halfSize) + "px";
+    topHalf.style.top = (y - halfSize) + "px";
     
     const topImg = document.createElement("img");
     topImg.src = imgSrc;
     topImg.style.clipPath = "inset(0 0 50% 0)";
+    topImg.style.width = size + "px";
+    topImg.style.height = size + "px";
     topHalf.appendChild(topImg);
     
     // Create bottom half
     const bottomHalf = document.createElement("div");
     bottomHalf.className = "fruit-half";
-    bottomHalf.style.left = (x - 42.5) + "px";
+    bottomHalf.style.left = (x - halfSize) + "px";
     bottomHalf.style.top = y + "px";
     
     const bottomImg = document.createElement("img");
     bottomImg.src = imgSrc;
     bottomImg.style.clipPath = "inset(50% 0 0 0)";
+    bottomImg.style.width = size + "px";
+    bottomImg.style.height = size + "px";
     bottomHalf.appendChild(bottomImg);
     
     gameArea.appendChild(topHalf);
@@ -551,11 +639,16 @@ function createCutEffect(x, y) {
 
 // Create bomb explosion
 function createBombExplosion(x, y) {
+    // Adjust size for mobile
+    const explosionSize = isMobileDevice ? 250 : 400;
+    
     // Main explosion effect
     const explosion = document.createElement("div");
     explosion.className = "bomb-explosion";
-    explosion.style.left = (x - 200) + "px";
-    explosion.style.top = (y - 200) + "px";
+    explosion.style.left = (x - explosionSize/2) + "px";
+    explosion.style.top = (y - explosionSize/2) + "px";
+    explosion.style.width = explosionSize + "px";
+    explosion.style.height = explosionSize + "px";
     gameArea.appendChild(explosion);
     
     // Fire particles
@@ -600,6 +693,11 @@ function createFloatingScore(x, y, text) {
     floating.style.left = x + "px";
     floating.style.top = y + "px";
     
+    // Adjust font size for mobile
+    if (isMobileDevice) {
+        floating.style.fontSize = '1.2rem';
+    }
+    
     // Color based on multiplier
     if (comboMultiplier >= 5) {
         floating.style.color = '#ff00ff';
@@ -636,7 +734,7 @@ function resetCombo() {
 // Game over
 async function gameOver() {
     active = false;
-    finalScore.textContent = score;
+    finalScore.textContent = score.toLocaleString();
     
     // Clear all fruits
     activeFruits.forEach(fruit => {
@@ -653,16 +751,74 @@ async function gameOver() {
     // Save score to leaderboard if user is logged in
     if (user && currentDifficulty) {
         try {
-            const { error } = await supabaseClient
-                .from('leaderboard-bahlil')
-                .insert({
-                    username: user.username,
-                    score: score,
-                    difficulty: currentDifficulty,
-                    created_at: new Date().toISOString()
-                });
+            // Ambil skor sebelumnya dari localStorage
+            const userScores = JSON.parse(localStorage.getItem('bahlilUserScores') || '{}');
+            const previousScore = userScores[user.username] || 0;
             
-            if (error) throw error;
+            // Hitung total skor baru
+            const newTotalScore = previousScore + score;
+            
+            // Simpan ke localStorage
+            userScores[user.username] = newTotalScore;
+            localStorage.setItem('bahlilUserScores', JSON.stringify(userScores));
+            
+            // Kirim ke Supabase
+            const { data: existingData } = await supabaseClient
+                .from('leaderboard-bahlil')
+                .select('score, difficulties_played')
+                .eq('username', user.username)
+                .single();
+            
+            const existingScore = existingData?.score || 0;
+            const existingDifficulties = existingData?.difficulties_played || [];
+            
+            // Tambahkan difficulty yang dimainkan jika belum ada
+            if (!existingDifficulties.includes(currentDifficulty)) {
+                existingDifficulties.push(currentDifficulty);
+            }
+            
+            // Hanya update jika skor baru lebih tinggi
+            if (newTotalScore > existingScore) {
+                if (existingData) {
+                    // Update skor yang sudah ada
+                    const { error } = await supabaseClient
+                        .from('leaderboard-bahlil')
+                        .update({
+                            score: newTotalScore,
+                            last_played: new Date().toISOString(),
+                            difficulties_played: existingDifficulties
+                        })
+                        .eq('username', user.username);
+                    
+                    if (error) throw error;
+                } else {
+                    // Insert baru
+                    const { error } = await supabaseClient
+                        .from('leaderboard-bahlil')
+                        .insert({
+                            username: user.username,
+                            score: newTotalScore,
+                            last_played: new Date().toISOString(),
+                            difficulties_played: existingDifficulties
+                        });
+                    
+                    if (error) throw error;
+                }
+            } else {
+                // Update hanya difficulties jika skor tidak lebih tinggi
+                if (existingData && !existingDifficulties.includes(currentDifficulty)) {
+                    const { error } = await supabaseClient
+                        .from('leaderboard-bahlil')
+                        .update({
+                            difficulties_played: existingDifficulties,
+                            last_played: new Date().toISOString()
+                        })
+                        .eq('username', user.username);
+                    
+                    if (error) console.error('Error updating difficulties:', error);
+                }
+            }
+            
         } catch (error) {
             console.error('Error saving score:', error);
         }
@@ -702,6 +858,12 @@ function startGameWithDifficulty(difficulty) {
     // Hide screens
     difficultyScreen.style.display = "none";
     gameOverBox.style.display = "none";
+    
+    // Remove mobile instruction if exists
+    const mobileInstruction = document.getElementById('mobileInstruction');
+    if (mobileInstruction) {
+        mobileInstruction.style.display = 'none';
+    }
     
     // Start game loop
     startGameLoop(settings);
@@ -779,18 +941,29 @@ async function loadLeaderboard() {
         
         if (data && data.length > 0) {
             html = '<table class="leaderboard-table">';
-            html += '<thead><tr><th>Rank</th><th>Username</th><th>Skor</th><th>Mode</th></tr></thead>';
+            html += '<thead><tr><th>Rank</th><th>Username</th><th>Total Skor</th><th>Mode Dimainkan</th></tr></thead>';
             html += '<tbody>';
             
             data.forEach((item, index) => {
                 const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
-                const difficultyName = difficulties[item.difficulty]?.name || item.difficulty.toUpperCase();
+                
+                // Format difficulties yang dimainkan
+                let difficultiesText = '-';
+                if (item.difficulties_played && Array.isArray(item.difficulties_played)) {
+                    const uniqueDifficulties = [...new Set(item.difficulties_played)];
+                    difficultiesText = uniqueDifficulties
+                        .map(diff => {
+                            const diffName = difficulties[diff]?.name || diff.toUpperCase();
+                            return `<span class="diff-badge">${diffName}</span>`;
+                        })
+                        .join(' ');
+                }
                 
                 html += `<tr>
                     <td class="${rankClass}">${index + 1}</td>
                     <td class="${rankClass}">${item.username}</td>
                     <td class="${rankClass}">${item.score.toLocaleString()}</td>
-                    <td>${difficultyName}</td>
+                    <td>${difficultiesText}</td>
                 </tr>`;
             });
             
@@ -840,7 +1013,7 @@ function setupEventListeners() {
         lastMouseY = y;
     });
     
-    // Touch support with trail
+    // Touch support
     document.addEventListener("touchmove", (e) => {
         if (!active) return;
         e.preventDefault();
@@ -849,9 +1022,9 @@ function setupEventListeners() {
         const x = touch.clientX;
         const y = touch.clientY;
         
-        // Create trail dots
+        // Create trail dots for mobile (optional, can be disabled for performance)
         const now = Date.now();
-        if (now - trailTimer > 30) {
+        if (!isMobileDevice && now - trailTimer > 30) {
             createTrailDot(x, y);
             trailTimer = now;
         }
@@ -860,6 +1033,18 @@ function setupEventListeners() {
         
         lastMouseX = x;
         lastMouseY = y;
+    });
+    
+    // Touch start for mobile
+    document.addEventListener("touchstart", (e) => {
+        if (!active) return;
+        e.preventDefault();
+        
+        const touch = e.touches[0];
+        const x = touch.clientX;
+        const y = touch.clientY;
+        
+        checkCursorHit(x, y);
     });
     
     // Difficulty buttons
@@ -990,6 +1175,8 @@ function setupEventListeners() {
     
     // Handle window resize
     window.addEventListener('resize', () => {
+        adjustUIForPortrait();
+        
         if (active) {
             // Reposition fruits based on new window size
             activeFruits.forEach(fruit => {
@@ -998,6 +1185,11 @@ function setupEventListeners() {
                 fruit.posY = rect.top;
             });
         }
+    });
+    
+    // Handle orientation change
+    window.addEventListener('orientationchange', () => {
+        setTimeout(adjustUIForPortrait, 100);
     });
 }
 
