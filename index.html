@@ -3,933 +3,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Potong Foto Game</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
-        }
-        
-        body {
-            background-color: #8B4513;
-            height: 100vh;
-            overflow: hidden;
-            background-image: 
-                linear-gradient(45deg, rgba(0,0,0,0.1) 25%, transparent 25%),
-                linear-gradient(-45deg, rgba(0,0,0,0.1) 25%, transparent 25%),
-                linear-gradient(45deg, transparent 75%, rgba(0,0,0,0.1) 75%),
-                linear-gradient(-45deg, transparent 75%, rgba(0,0,0,0.1) 75%);
-            background-size: 40px 40px;
-            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M16 2L2 16L16 30L30 16Z" fill="%23FF0000" stroke="%23FFFFFF" stroke-width="2"/></svg>') 16 16, crosshair;
-        }
-        
-        .game-container {
-            position: relative;
-            width: 100%;
-            height: 100vh;
-            overflow: hidden;
-        }
-        
-        /* Header dengan Skor */
-        .header {
-            position: absolute;
-            top: 20px;
-            width: 100%;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 100;
-        }
-        
-        .score-container {
-            background-color: rgba(139, 69, 19, 0.9);
-            padding: 15px 25px;
-            border-radius: 15px;
-            border: 3px solid #D2691E;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            min-width: 180px;
-        }
-        
-        .score-title {
-            color: #FFF;
-            font-size: 1.1rem;
-            margin-bottom: 5px;
-            font-weight: 600;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
-        
-        .score {
-            color: #FFD700;
-            font-size: 2.8rem;
-            font-weight: 700;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
-            letter-spacing: 1px;
-        }
-        
-        .lives-container {
-            display: flex;
-            gap: 15px;
-            margin-top: 10px;
-            justify-content: center;
-        }
-        
-        .heart {
-            width: 35px;
-            height: 35px;
-            position: relative;
-            background-color: #FF0000;
-            transform: rotate(-45deg);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
-        
-        .heart:before,
-        .heart:after {
-            content: "";
-            width: 35px;
-            height: 35px;
-            background-color: #FF0000;
-            border-radius: 50%;
-            position: absolute;
-        }
-        
-        .heart:before {
-            top: -17px;
-            left: 0;
-        }
-        
-        .heart:after {
-            top: 0;
-            left: 17px;
-        }
-        
-        .heart.lost {
-            background-color: #444;
-        }
-        
-        .heart.lost:before,
-        .heart.lost:after {
-            background-color: #444;
-        }
-        
-        /* Start Screen */
-        .start-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(139, 69, 19, 0.95);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 300;
-            padding: 20px;
-        }
-        
-        .instructions {
-            color: #FFF;
-            font-size: 1.3rem;
-            max-width: 600px;
-            text-align: center;
-            margin-bottom: 40px;
-            line-height: 1.8;
-            background-color: rgba(210, 105, 30, 0.8);
-            padding: 30px;
-            border-radius: 15px;
-            border: 3px solid #A0522D;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-        }
-        
-        .instructions h2 {
-            color: #FFD700;
-            margin-bottom: 20px;
-            font-size: 1.8rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-        
-        .instructions-list {
-            text-align: left;
-            display: inline-block;
-            margin-top: 15px;
-        }
-        
-        .instructions-list li {
-            margin-bottom: 12px;
-            padding-left: 10px;
-        }
-        
-        .good {
-            color: #90EE90;
-            font-weight: 600;
-        }
-        
-        .bad {
-            color: #FF6B6B;
-            font-weight: 600;
-        }
-        
-        .start-btn {
-            background: linear-gradient(145deg, #FF8C00, #FF4500);
-            color: #FFF;
-            border: none;
-            padding: 18px 60px;
-            font-size: 1.8rem;
-            font-weight: 700;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 20px;
-        }
-        
-        .start-btn:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.5);
-            background: linear-gradient(145deg, #FFA500, #FF5500);
-        }
-        
-        /* Game Over Screen */
-        .game-over {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(139, 69, 19, 0.95);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 200;
-        }
-        
-        .game-over h1 {
-            color: #FF0000;
-            font-size: 4.5rem;
-            margin-bottom: 30px;
-            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
-            font-weight: 700;
-        }
-        
-        .final-score {
-            color: #FFD700;
-            font-size: 3rem;
-            margin-bottom: 50px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
-            font-weight: 700;
-        }
-        
-        .restart-btn {
-            background: linear-gradient(145deg, #32CD32, #228B22);
-            color: #FFF;
-            border: none;
-            padding: 18px 50px;
-            font-size: 1.8rem;
-            font-weight: 700;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .restart-btn:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.5);
-            background: linear-gradient(145deg, #3CB371, #2E8B57);
-        }
-        
-        /* Foto (buah) */
-        .foto-item {
-            position: absolute;
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            overflow: hidden;
-            cursor: pointer;
-            user-select: none;
-            transition: transform 0.1s;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-            z-index: 10;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .foto-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .foto-item.slice-effect {
-            animation: sliceFade 0.5s forwards;
-        }
-        
-        @keyframes sliceFade {
-            0% {
-                opacity: 1;
-                transform: scale(1);
-            }
-            100% {
-                opacity: 0;
-                transform: scale(0) rotate(180deg);
-            }
-        }
-        
-        /* Efek potongan */
-        .slice-trail {
-            position: absolute;
-            pointer-events: none;
-            width: 25px;
-            height: 25px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            animation: trailFade 0.3s forwards;
-            z-index: 50;
-            box-shadow: 0 0 10px #FFF;
-        }
-        
-        @keyframes trailFade {
-            0% {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(1);
-            }
-            100% {
-                opacity: 0;
-                transform: translate(-50%, -50%) scale(0);
-            }
-        }
-        
-        /* Efek ledakan bom */
-        .explosion {
-            position: absolute;
-            pointer-events: none;
-            width: 150px;
-            height: 150px;
-            background: radial-gradient(circle, rgba(255,50,50,0.9) 0%, rgba(255,0,0,0) 70%);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            animation: explode 0.5s forwards;
-            z-index: 60;
-        }
-        
-        @keyframes explode {
-            0% {
-                transform: translate(-50%, -50%) scale(0);
-                opacity: 1;
-            }
-            100% {
-                transform: translate(-50%, -50%) scale(1);
-                opacity: 0;
-            }
-        }
-        
-        /* Efek skor */
-        .score-effect {
-            position: absolute;
-            color: #FFD700;
-            font-size: 1.8rem;
-            font-weight: 700;
-            pointer-events: none;
-            animation: scoreFloat 1s forwards;
-            text-shadow: 2px 2px 4px #000;
-            z-index: 70;
-        }
-        
-        @keyframes scoreFloat {
-            0% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-            100% {
-                opacity: 0;
-                transform: translateY(-60px);
-            }
-        }
-        
-        /* Combo */
-        .combo {
-            position: absolute;
-            top: 150px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #FFD700;
-            font-size: 2.2rem;
-            font-weight: 700;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: 80;
-            background-color: rgba(139, 69, 19, 0.8);
-            padding: 10px 20px;
-            border-radius: 10px;
-            border: 2px solid #D2691E;
-        }
-        
-        /* Area game */
-        #gameArea {
-            width: 100%;
-            height: 100%;
-            position: relative;
-        }
-        
-        /* Responsif */
-        @media (max-width: 768px) {
-            .score {
-                font-size: 2.2rem;
-            }
-            
-            .instructions {
-                font-size: 1.1rem;
-                padding: 20px;
-            }
-            
-            .start-btn, .restart-btn {
-                padding: 15px 40px;
-                font-size: 1.5rem;
-            }
-            
-            .foto-item {
-                width: 85px;
-                height: 85px;
-            }
-        }
-    </style>
+    <title>BAHLIL SLAYER</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="game-container">
-        <!-- Start Screen -->
-        <div class="start-screen" id="startScreen">
-            <div class="instructions">
-                <h2>Instruksi Permainan</h2>
-                <ul class="instructions-list">
-                    <li><span class="good">Foto 1-10</span>: <span style="color:#FFF">+10 poin</span></li>
-                    <li><span class="bad">Foto 11 (BOM)</span>: <span style="color:#FFF">-20 poin & kurangi nyawa</span></li>
-                    <li><span style="color:#FFD700">Gunakan mouse untuk memotong foto</span></li>
-                    <li><span style="color:#FFD700">Potong foto berurutan untuk combo bonus!</span></li>
-                    <li><span style="color:#FFD700">Anda memiliki 3 nyawa</span></li>
-                </ul>
+    <!-- Particles Background -->
+    <div id="particles"></div>
+
+    <!-- Game Container -->
+    <div id="gameContainer">
+        <!-- Header -->
+        <div id="header">
+            <div class="logo">
+                <div class="logo-icon"><i class="fas fa-crosshairs"></i></div>
+                <div class="logo-text">BAHLIL SLAYER</div>
             </div>
-            <button class="start-btn" id="startBtn">MULAI PERMAINAN</button>
-        </div>
-        
-        <!-- Header dengan Skor -->
-        <div class="header">
-            <div class="score-container">
-                <div class="score-title">SKOR</div>
-                <div class="score" id="score">0</div>
-                <div class="lives-container" id="livesContainer">
-                    <div class="heart"></div>
-                    <div class="heart"></div>
-                    <div class="heart"></div>
+            <div class="menu-icons">
+                <div class="menu-btn" id="guideBtn" title="Panduan">
+                    <i class="fas fa-question"></i>
+                </div>
+                <div class="menu-btn" id="leaderboardBtn" title="Leaderboard">
+                    <i class="fas fa-trophy"></i>
                 </div>
             </div>
         </div>
-        
-        <!-- Combo Display -->
-        <div class="combo" id="comboDisplay">COMBO x<span id="comboCount">0</span></div>
-        
-        <!-- Game Over Screen -->
-        <div class="game-over" id="gameOverScreen">
-            <h1>GAME OVER</h1>
-            <div class="final-score">Skor: <span id="finalScore">0</span></div>
-            <button class="restart-btn" id="restartBtn">MAIN LAGI</button>
+
+        <!-- Game UI -->
+        <div id="gameUI">
+            <div id="score">0</div>
+            <div id="livesContainer">
+                <div class="heart"></div>
+                <div class="heart"></div>
+                <div class="heart"></div>
+            </div>
         </div>
-        
-        <!-- Area game untuk foto muncul -->
+
+        <!-- Combo Display -->
+        <div id="comboContainer">
+            <div id="comboText">COMBO: 0</div>
+            <div id="multiplierText"></div>
+        </div>
+
+        <!-- Trail Effect -->
+        <div id="cursorTrail"></div>
+
+        <!-- Game Area -->
         <div id="gameArea"></div>
+
+        <!-- Start Screen -->
+        <div id="startScreen">
+            <h1 class="main-title">BAHLIL SLAYER</h1>
+            <p class="subtitle">Potong buah dengan kursor, hindari bom merah. Setiap potongan meningkatkan combo!</p>
+            <button id="startButton">
+                <i class="fas fa-play" style="margin-right: 10px;"></i> MULAI PERMAINAN
+            </button>
+        </div>
+
+        <!-- Difficulty Screen -->
+        <div id="difficultyScreen">
+            <div class="difficulty-container">
+                <h2 class="difficulty-title">PILIH TINGKAT KESULITAN</h2>
+                <button class="diff-btn baby" data-difficulty="baby">
+                    <div class="diff-name">
+                        <span class="diff-icon"><i class="fas fa-baby"></i></span>
+                        <span>BABY</span>
+                    </div>
+                    <div class="diff-stats">8 nyawa • Bom 5%</div>
+                </button>
+                <button class="diff-btn easy" data-difficulty="easy">
+                    <div class="diff-name">
+                        <span class="diff-icon"><i class="fas fa-smile"></i></span>
+                        <span>MUDAH</span>
+                    </div>
+                    <div class="diff-stats">6 nyawa • Bom 10%</div>
+                </button>
+                <button class="diff-btn normal" data-difficulty="normal">
+                    <div class="diff-name">
+                        <span class="diff-icon"><i class="fas fa-meh"></i></span>
+                        <span>NORMAL</span>
+                    </div>
+                    <div class="diff-stats">5 nyawa • Bom 15%</div>
+                </button>
+                <button class="diff-btn medium" data-difficulty="medium">
+                    <div class="diff-name">
+                        <span class="diff-icon"><i class="fas fa-grimace"></i></span>
+                        <span>MENENGAH</span>
+                    </div>
+                    <div class="diff-stats">4 nyawa • Bom 20%</div>
+                </button>
+                <button class="diff-btn hard" data-difficulty="hard">
+                    <div class="diff-name">
+                        <span class="diff-icon"><i class="fas fa-frown"></i></span>
+                        <span>SULIT</span>
+                    </div>
+                    <div class="diff-stats">3 nyawa • Bom 25%</div>
+                </button>
+                <button class="diff-btn very-hard" data-difficulty="very-hard">
+                    <div class="diff-name">
+                        <span class="diff-icon"><i class="fas fa-angry"></i></span>
+                        <span>SANGAT SULIT</span>
+                    </div>
+                    <div class="diff-stats">2 nyawa • Bom 30%</div>
+                </button>
+                <button class="diff-btn nightmare" data-difficulty="nightmare">
+                    <div class="diff-name">
+                        <span class="diff-icon"><i class="fas fa-skull"></i></span>
+                        <span>MIMPI BURUK</span>
+                    </div>
+                    <div class="diff-stats">2 nyawa • Bom 35%</div>
+                </button>
+                <button class="diff-btn impossible" data-difficulty="impossible">
+                    <div class="diff-name">
+                        <span class="diff-icon"><i class="fas fa-fire"></i></span>
+                        <span>TIDAK MUNGKIN</span>
+                    </div>
+                    <div class="diff-stats">1 nyawa • Bom 40%</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Auth Screen -->
+        <div id="authScreen">
+            <div class="auth-container">
+                <h2 class="auth-title" id="authTitle">MASUK</h2>
+                <form id="authForm" class="auth-form">
+                    <input type="text" id="authUsername" class="form-input" placeholder="Username" required>
+                    <input type="password" id="authPassword" class="form-input" placeholder="Password" required>
+                    <div class="form-group" id="confirmPasswordGroup" style="display: none;">
+                        <input type="password" id="authConfirmPassword" class="form-input" placeholder="Konfirmasi Password">
+                    </div>
+                    <button type="submit" class="auth-btn" id="authSubmitBtn">MASUK</button>
+                </form>
+                <div class="auth-switch">
+                    <span id="authSwitchText">Belum punya akun?</span>
+                    <span class="auth-link" id="authSwitchBtn">Daftar</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Guide Screen -->
+        <div id="guideScreen">
+            <div class="guide-container">
+                <h2 class="guide-title">PANDUAN PERMAINAN</h2>
+                <div class="guide-content">
+                    <div class="guide-item">
+                        <h3><i class="fas fa-mouse-pointer"></i> Cara Bermain</h3>
+                        <p>Gerakkan kursor ke buah untuk memotongnya. Tidak perlu membuat garis, cukup sentuh buah dengan kursor. Buah akan terbelah menjadi dua.</p>
+                    </div>
+                    <div class="guide-item">
+                        <h3><i class="fas fa-bomb"></i> Hindari Bom</h3>
+                        <p>Bom berwarna merah dan berkedip. Jangan sentuh bom! Setiap bom yang tersentuh mengurangi 1 nyawa.</p>
+                    </div>
+                    <div class="guide-item">
+                        <h3><i class="fas fa-chart-line"></i> Sistem Combo</h3>
+                        <p>Potong buah berturut-turut untuk mendapatkan combo. Combo meningkatkan multiplier skor (x1, x2, x3, dst).</p>
+                    </div>
+                    <div class="guide-item">
+                        <h3><i class="fas fa-heart"></i> Nyawa</h3>
+                        <p>Setiap difficulty memiliki jumlah nyawa berbeda. Game berakhir ketika nyawa habis.</p>
+                    </div>
+                </div>
+                <button id="closeGuideBtn" class="auth-btn" style="width: 100%; margin-top: 20px;">
+                    <i class="fas fa-times" style="margin-right: 10px;"></i> TUTUP
+                </button>
+            </div>
+        </div>
+
+        <!-- Leaderboard Screen -->
+        <div id="leaderboardScreen">
+            <div class="leaderboard-container">
+                <h2 class="leaderboard-title">LEADERBOARD</h2>
+                <div id="leaderboardContent">
+                    <!-- Leaderboard akan dimuat di sini -->
+                </div>
+                <button id="closeLeaderboardBtn" class="auth-btn" style="width: 100%;">
+                    <i class="fas fa-times" style="margin-right: 10px;"></i> TUTUP
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Over -->
+        <div id="gameOver">
+            <h1 class="game-over-title">GAME OVER</h1>
+            <div class="final-score">Skor: <span id="finalScore">0</span></div>
+            <div class="game-over-buttons">
+                <button class="game-over-btn" id="restartBtn">MAIN LAGI</button>
+                <button class="game-over-btn" id="menuBtn">MENU UTAMA</button>
+            </div>
+        </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Elemen DOM
-            const startScreen = document.getElementById('startScreen');
-            const gameOverScreen = document.getElementById('gameOverScreen');
-            const startBtn = document.getElementById('startBtn');
-            const restartBtn = document.getElementById('restartBtn');
-            const scoreElement = document.getElementById('score');
-            const finalScoreElement = document.getElementById('finalScore');
-            const livesContainer = document.getElementById('livesContainer');
-            const comboDisplay = document.getElementById('comboDisplay');
-            const comboCount = document.getElementById('comboCount');
-            const gameArea = document.getElementById('gameArea');
-            
-            // Variabel game
-            let score = 0;
-            let lives = 3;
-            let gameActive = false;
-            let combo = 0;
-            let lastSliceTime = 0;
-            let items = [];
-            let itemId = 0;
-            
-            // Nama file foto (pastikan file-file ini ada di folder yang sama dengan HTML)
-            const fotoFiles = [
-                'foto1.webp',
-                'foto2.webp', 
-                'foto3.webp',
-                'foto4.webp',
-                'foto5.webp',
-                'foto6.webp',
-                'foto7.webp',
-                'foto8.webp',
-                'foto9.webp',
-                'foto10.webp',
-                'foto11.webp'  // Ini bom
-            ];
-            
-            // Inisialisasi game
-            function initGame() {
-                score = 0;
-                lives = 3;
-                combo = 0;
-                items = [];
-                itemId = 0;
-                
-                updateScore();
-                updateLives();
-                hideCombo();
-                
-                // Hapus semua item yang ada
-                gameArea.innerHTML = '';
-                
-                // Reset cursor
-                document.body.style.cursor = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M16 2L2 16L16 30L30 16Z" fill="%23FF0000" stroke="%23FFFFFF" stroke-width="2"/></svg>\') 16 16, crosshair';
-                
-                // Mulai spawn item
-                startSpawning();
-                
-                // Tampilkan game area, sembunyikan layar awal
-                startScreen.style.display = 'none';
-                gameOverScreen.style.display = 'none';
-                gameActive = true;
-            }
-            
-            // Spawn item (foto)
-            function startSpawning() {
-                if (!gameActive) return;
-                
-                // Spawn item baru setiap 800-1200ms
-                setTimeout(() => {
-                    spawnItem();
-                    startSpawning();
-                }, Math.random() * 400 + 800);
-            }
-            
-            // Buat item baru
-            function spawnItem() {
-                if (!gameActive) return;
-                
-                const item = document.createElement('div');
-                item.className = 'foto-item';
-                item.id = `item-${itemId++}`;
-                
-                // Tentukan apakah ini bom (foto11) atau foto biasa
-                const isBomb = Math.random() < 0.15; // 15% kemungkinan bom
-                let fotoIndex;
-                
-                if (isBomb) {
-                    fotoIndex = 10; // foto11.webp (bom)
-                    item.classList.add('bomb');
-                } else {
-                    fotoIndex = Math.floor(Math.random() * 10); // foto1-foto10
-                }
-                
-                // Atur foto
-                const img = document.createElement('img');
-                img.src = fotoFiles[fotoIndex];
-                img.alt = `Foto ${fotoIndex + 1}`;
-                img.onerror = function() {
-                    // Jika foto tidak ditemukan, buat placeholder
-                    this.onerror = null;
-                    this.src = createPlaceholder(fotoIndex + 1, isBomb);
-                };
-                item.appendChild(img);
-                
-                // Atur posisi awal (bawah layar)
-                const startX = Math.random() * (window.innerWidth - 120) + 60;
-                item.style.left = `${startX}px`;
-                item.style.bottom = `-120px`;
-                
-                // Atur kecepatan dan arah
-                const speed = Math.random() * 3 + 3;
-                const angle = (Math.random() * 40 - 20) * Math.PI / 180;
-                
-                // Tambahkan ke game area
-                gameArea.appendChild(item);
-                
-                // Simpan data item
-                const itemData = {
-                    element: item,
-                    x: startX,
-                    y: -120,
-                    speed: speed,
-                    angle: angle,
-                    isBomb: isBomb,
-                    id: item.id
-                };
-                
-                items.push(itemData);
-                
-                // Animasikan pergerakan
-                animateItem(itemData);
-                
-                // Hapus item setelah 5 detik jika tidak dipotong
-                setTimeout(() => {
-                    removeItem(itemData.id);
-                }, 5000);
-            }
-            
-            // Buat placeholder jika foto tidak ditemukan
-            function createPlaceholder(number, isBomb) {
-                const canvas = document.createElement('canvas');
-                canvas.width = 100;
-                canvas.height = 100;
-                const ctx = canvas.getContext('2d');
-                
-                // Warna berdasarkan tipe
-                if (isBomb) {
-                    ctx.fillStyle = '#FF0000'; // Merah untuk bom
-                } else {
-                    // Warna berbeda untuk foto berbeda
-                    const colors = ['#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0', '#118AB2', 
-                                   '#EF476F', '#FFD166', '#06D6A0', '#073B4C', '#7209B7'];
-                    ctx.fillStyle = colors[(number-1) % colors.length];
-                }
-                
-                // Gambar lingkaran
-                ctx.beginPath();
-                ctx.arc(50, 50, 40, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Tambah border
-                ctx.strokeStyle = '#FFFFFF';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                
-                // Tambah nomor
-                ctx.fillStyle = '#FFFFFF';
-                ctx.font = 'bold 24px Poppins';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(isBomb ? 'BOM' : number.toString(), 50, 50);
-                
-                return canvas.toDataURL();
-            }
-            
-            // Animasikan pergerakan item
-            function animateItem(itemData) {
-                if (!gameActive) return;
-                
-                // Update posisi
-                itemData.y += itemData.speed;
-                itemData.x += Math.sin(itemData.y * 0.015) * 2.5;
-                
-                // Batasi di area game
-                if (itemData.x < 60) itemData.x = 60;
-                if (itemData.x > window.innerWidth - 160) itemData.x = window.innerWidth - 160;
-                
-                // Update posisi elemen
-                itemData.element.style.left = `${itemData.x}px`;
-                itemData.element.style.bottom = `${itemData.y}px`;
-                
-                // Rotasi sedikit untuk efek dinamis
-                itemData.element.style.transform = `rotate(${Math.sin(itemData.y * 0.05) * 10}deg)`;
-                
-                // Terus animasi selama item masih ada
-                if (items.find(item => item.id === itemData.id)) {
-                    requestAnimationFrame(() => animateItem(itemData));
-                }
-            }
-            
-            // Hapus item
-            function removeItem(id) {
-                const index = items.findIndex(item => item.id === id);
-                if (index !== -1) {
-                    const item = items[index];
-                    if (item.element.parentNode) {
-                        item.element.remove();
-                    }
-                    items.splice(index, 1);
-                }
-            }
-            
-            // Potong item
-            function sliceItem(itemData, x, y) {
-                // Tandai item sudah dipotong
-                itemData.element.classList.add('slice-effect');
-                
-                // Buat efek potongan
-                createSliceEffect(x, y);
-                
-                // Cek apakah bom
-                if (itemData.isBomb) {
-                    // Bom meledak
-                    createExplosion(x, y);
-                    
-                    // Kurangi skor dan nyawa
-                    score = Math.max(0, score - 20);
-                    lives--;
-                    
-                    // Update tampilan
-                    updateScore();
-                    updateLives();
-                    
-                    // Reset combo
-                    resetCombo();
-                    
-                    // Cek game over
-                    if (lives <= 0) {
-                        gameOver();
-                    } else {
-                        // Tampilkan efek minus score
-                        createScoreEffect(x, y, '-20', '#FF0000');
-                    }
-                } else {
-                    // Foto biasa - tambah skor
-                    const points = 10;
-                    
-                    // Cek combo
-                    const currentTime = Date.now();
-                    if (currentTime - lastSliceTime < 800) {
-                        combo++;
-                        showCombo();
-                    } else {
-                        combo = 1;
-                    }
-                    
-                    lastSliceTime = currentTime;
-                    
-                    // Hitung total poin dengan bonus combo
-                    const comboBonus = combo > 1 ? Math.floor(combo / 2) * 5 : 0;
-                    const totalPoints = points + comboBonus;
-                    
-                    score += totalPoints;
-                    updateScore();
-                    
-                    // Tampilkan efek score
-                    let scoreText = `+${totalPoints}`;
-                    if (comboBonus > 0) {
-                        scoreText += ` (${combo}x combo)`;
-                    }
-                    createScoreEffect(x, y, scoreText, '#FFD700');
-                }
-                
-                // Hapus item setelah delay
-                setTimeout(() => {
-                    removeItem(itemData.id);
-                }, 500);
-            }
-            
-            // Buat efek potongan
-            function createSliceEffect(x, y) {
-                const trail = document.createElement('div');
-                trail.className = 'slice-trail';
-                trail.style.left = `${x}px`;
-                trail.style.top = `${y}px`;
-                gameArea.appendChild(trail);
-                
-                setTimeout(() => {
-                    if (trail.parentNode) trail.remove();
-                }, 300);
-            }
-            
-            // Buat efek ledakan bom
-            function createExplosion(x, y) {
-                const explosion = document.createElement('div');
-                explosion.className = 'explosion';
-                explosion.style.left = `${x}px`;
-                explosion.style.top = `${y}px`;
-                gameArea.appendChild(explosion);
-                
-                setTimeout(() => {
-                    if (explosion.parentNode) explosion.remove();
-                }, 500);
-            }
-            
-            // Buat efek skor
-            function createScoreEffect(x, y, text, color) {
-                const scoreEffect = document.createElement('div');
-                scoreEffect.className = 'score-effect';
-                scoreEffect.textContent = text;
-                scoreEffect.style.color = color;
-                scoreEffect.style.left = `${x}px`;
-                scoreEffect.style.top = `${y}px`;
-                gameArea.appendChild(scoreEffect);
-                
-                setTimeout(() => {
-                    if (scoreEffect.parentNode) scoreEffect.remove();
-                }, 1000);
-            }
-            
-            // Tampilkan combo
-            function showCombo() {
-                comboCount.textContent = combo;
-                comboDisplay.style.opacity = '1';
-                
-                // Sembunyikan setelah 1.5 detik
-                setTimeout(() => {
-                    if (Date.now() - lastSliceTime > 1000) {
-                        hideCombo();
-                    }
-                }, 1500);
-            }
-            
-            // Sembunyikan combo
-            function hideCombo() {
-                comboDisplay.style.opacity = '0';
-            }
-            
-            // Reset combo
-            function resetCombo() {
-                combo = 0;
-                hideCombo();
-            }
-            
-            // Update skor
-            function updateScore() {
-                scoreElement.textContent = score;
-                scoreElement.style.transform = 'scale(1.1)';
-                setTimeout(() => {
-                    scoreElement.style.transform = 'scale(1)';
-                }, 100);
-            }
-            
-            // Update nyawa (love hearts)
-            function updateLives() {
-                const hearts = livesContainer.querySelectorAll('.heart');
-                hearts.forEach((heart, index) => {
-                    if (index < lives) {
-                        heart.classList.remove('lost');
-                    } else {
-                        heart.classList.add('lost');
-                    }
-                });
-            }
-            
-            // Game over
-            function gameOver() {
-                gameActive = false;
-                finalScoreElement.textContent = score;
-                gameOverScreen.style.display = 'flex';
-                
-                // Hapus semua item
-                items.forEach(item => {
-                    if (item.element.parentNode) {
-                        item.element.remove();
-                    }
-                });
-                items = [];
-            }
-            
-            // Deteksi potongan dengan mouse
-            let isMouseDown = false;
-            let lastMouseX = 0;
-            let lastMouseY = 0;
-            
-            document.addEventListener('mousedown', (e) => {
-                isMouseDown = true;
-                lastMouseX = e.clientX;
-                lastMouseY = e.clientY;
-                createSliceEffect(e.clientX, e.clientY);
-            });
-            
-            document.addEventListener('mousemove', (e) => {
-                if (!isMouseDown || !gameActive) return;
-                
-                const currentX = e.clientX;
-                const currentY = e.clientY;
-                
-                // Buat efek trail setiap beberapa pixel
-                if (Math.sqrt(Math.pow(currentX - lastMouseX, 2) + Math.pow(currentY - lastMouseY, 2)) > 15) {
-                    createSliceEffect(currentX, currentY);
-                }
-                
-                // Cek tabrakan dengan item
-                items.forEach(item => {
-                    const rect = item.element.getBoundingClientRect();
-                    const itemCenterX = rect.left + rect.width / 2;
-                    const itemCenterY = rect.top + rect.height / 2;
-                    
-                    // Hitung jarak antara garis potong dan item
-                    const distance = pointToLineDistance(
-                        lastMouseX, lastMouseY, currentX, currentY,
-                        itemCenterX, itemCenterY
-                    );
-                    
-                    // Jika dekat, potong item
-                    if (distance < rect.width / 2) {
-                        sliceItem(item, itemCenterX, itemCenterY);
-                    }
-                });
-                
-                // Update posisi terakhir
-                lastMouseX = currentX;
-                lastMouseY = currentY;
-            });
-            
-            document.addEventListener('mouseup', () => {
-                isMouseDown = false;
-            });
-            
-            // Fungsi untuk menghitung jarak titik ke garis
-            function pointToLineDistance(x1, y1, x2, y2, px, py) {
-                const A = px - x1;
-                const B = py - y1;
-                const C = x2 - x1;
-                const D = y2 - y1;
-                
-                const dot = A * C + B * D;
-                const lenSq = C * C + D * D;
-                let param = -1;
-                
-                if (lenSq !== 0) {
-                    param = dot / lenSq;
-                }
-                
-                let xx, yy;
-                
-                if (param < 0) {
-                    xx = x1;
-                    yy = y1;
-                } else if (param > 1) {
-                    xx = x2;
-                    yy = y2;
-                } else {
-                    xx = x1 + param * C;
-                    yy = y1 + param * D;
-                }
-                
-                const dx = px - xx;
-                const dy = py - yy;
-                
-                return Math.sqrt(dx * dx + dy * dy);
-            }
-            
-            // Event listeners untuk tombol
-            startBtn.addEventListener('click', initGame);
-            restartBtn.addEventListener('click', initGame);
-            
-            // Responsif - update posisi saat resize window
-            window.addEventListener('resize', () => {
-                if (!gameActive) return;
-                
-                // Update posisi semua item
-                items.forEach(item => {
-                    const rect = item.element.getBoundingClientRect();
-                    item.x = rect.left;
-                    item.y = window.innerHeight - rect.bottom;
-                });
-            });
-        });
-    </script>
+    <!-- Loading Screen -->
+    <div class="loading" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <div style="font-size: 1.1rem; color: #ff8c00;">Memuat...</div>
+    </div>
+
+    <!-- Audio Pool untuk suara bertimpa-timpa -->
+    <div id="audioPool"></div>
+
+    <!-- Supabase JS -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
 </body>
 </html>
