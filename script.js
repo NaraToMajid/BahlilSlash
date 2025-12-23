@@ -33,6 +33,7 @@ let currentDifficulty = null;
 let user = null;
 let isLoginMode = true;
 let isMobileDevice = false;
+let realtimeSubscription = null;
 
 // Combo system
 let comboCount = 0;
@@ -143,6 +144,7 @@ async function initGame() {
     const savedUser = localStorage.getItem('bahlilUser');
     if (savedUser) {
         user = JSON.parse(savedUser);
+        updateAuthUI();
     }
     
     // Setup particles background
@@ -154,6 +156,14 @@ async function initGame() {
     // Adjust UI for portrait mode
     adjustUIForPortrait();
     
+    // Setup realtime subscription
+    setupRealtimeSubscription();
+    
+    // Sync pending scores if user is logged in
+    if (user) {
+        await syncPendingScores();
+    }
+    
     // Hide loading screen
     setTimeout(() => {
         loadingScreen.style.display = 'none';
@@ -161,6 +171,97 @@ async function initGame() {
     
     // Setup event listeners
     setupEventListeners();
+}
+
+// Update auth UI (show/hide logout button)
+function updateAuthUI() {
+    const leaderboardBtn = document.getElementById("leaderboardBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    
+    if (user) {
+        // User logged in
+        if (logoutBtn) {
+            logoutBtn.style.display = 'flex';
+        } else {
+            // Create logout button if doesn't exist
+            const newLogoutBtn = document.createElement('div');
+            newLogoutBtn.id = 'logoutBtn';
+            newLogoutBtn.className = 'menu-btn';
+            newLogoutBtn.title = 'Keluar';
+            newLogoutBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i>';
+            
+            const menuIcons = document.querySelector('.menu-icons');
+            if (menuIcons) {
+                menuIcons.appendChild(newLogoutBtn);
+                
+                newLogoutBtn.addEventListener('click', () => {
+                    handleLogout();
+                });
+            }
+        }
+        
+        // Update leaderboard button tooltip
+        leaderboardBtn.title = "Leaderboard";
+    } else {
+        // User not logged in
+        if (logoutBtn) {
+            logoutBtn.style.display = 'none';
+        }
+        
+        // Update leaderboard button tooltip
+        leaderboardBtn.title = "Leaderboard (Login dulu)";
+    }
+}
+
+// Handle logout
+function handleLogout() {
+    if (confirm("Apakah Anda yakin ingin keluar?")) {
+        user = null;
+        localStorage.removeItem('bahlilUser');
+        updateAuthUI();
+        
+        // Show notification
+        showNotification("Berhasil keluar!", "success");
+        
+        // Close leaderboard if open
+        leaderboardScreen.style.display = "none";
+    }
+}
+
+// Show notification
+function showNotification(message, type = 'info') {
+    // Remove existing notification
+    const existingNotification = document.getElementById('gameNotification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    const notification = document.createElement('div');
+    notification.id = 'gameNotification';
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${type === 'success' ? 'rgba(0, 200, 83, 0.9)' : 'rgba(33, 150, 243, 0.9)'};
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        z-index: 1000;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        animation: slideDown 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transition = 'opacity 0.5s';
+        setTimeout(() => notification.remove(), 500);
+    }, 3000);
 }
 
 // Adjust UI for portrait mode
@@ -217,6 +318,31 @@ function adjustUIForPortrait() {
             document.getElementById('gameContainer').appendChild(mobileInstruction);
         }
     }
+}
+
+// Setup realtime subscription
+function setupRealtimeSubscription() {
+    if (realtimeSubscription) {
+        supabaseClient.removeSubscription(realtimeSubscription);
+    }
+    
+    realtimeSubscription = supabaseClient
+        .channel('leaderboard-changes')
+        .on('postgres_changes', 
+            { 
+                event: '*', 
+                schema: 'public', 
+                table: 'leaderboard-bahlil' 
+            }, 
+            (payload) => {
+                console.log('Realtime update:', payload);
+                // Refresh leaderboard ketika ada perubahan
+                if (leaderboardScreen.style.display === 'flex') {
+                    loadLeaderboard();
+                }
+            }
+        )
+        .subscribe();
 }
 
 // Create particles background
@@ -731,7 +857,7 @@ function resetCombo() {
     updateComboDisplay();
 }
 
-// Game over
+// Game over dengan skor akumulatif
 async function gameOver() {
     active = false;
     finalScore.textContent = score.toLocaleString();
@@ -751,76 +877,18 @@ async function gameOver() {
     // Save score to leaderboard if user is logged in
     if (user && currentDifficulty) {
         try {
-            // Ambil skor sebelumnya dari localStorage
-            const userScores = JSON.parse(localStorage.getItem('bahlilUserScores') || '{}');
-            const previousScore = userScores[user.username] || 0;
+            // 1. Simpan di localStorage untuk cache
+            saveScoreToLocalStorage();
             
-            // Hitung total skor baru
-            const newTotalScore = previousScore + score;
+            // 2. Kirim ke Supabase dengan sistem akumulatif
+            await saveScoreToSupabase();
             
-            // Simpan ke localStorage
-            userScores[user.username] = newTotalScore;
-            localStorage.setItem('bahlilUserScores', JSON.stringify(userScores));
-            
-            // Kirim ke Supabase
-            const { data: existingData } = await supabaseClient
-                .from('leaderboard-bahlil')
-                .select('score, difficulties_played')
-                .eq('username', user.username)
-                .single();
-            
-            const existingScore = existingData?.score || 0;
-            const existingDifficulties = existingData?.difficulties_played || [];
-            
-            // Tambahkan difficulty yang dimainkan jika belum ada
-            if (!existingDifficulties.includes(currentDifficulty)) {
-                existingDifficulties.push(currentDifficulty);
-            }
-            
-            // Hanya update jika skor baru lebih tinggi
-            if (newTotalScore > existingScore) {
-                if (existingData) {
-                    // Update skor yang sudah ada
-                    const { error } = await supabaseClient
-                        .from('leaderboard-bahlil')
-                        .update({
-                            score: newTotalScore,
-                            last_played: new Date().toISOString(),
-                            difficulties_played: existingDifficulties
-                        })
-                        .eq('username', user.username);
-                    
-                    if (error) throw error;
-                } else {
-                    // Insert baru
-                    const { error } = await supabaseClient
-                        .from('leaderboard-bahlil')
-                        .insert({
-                            username: user.username,
-                            score: newTotalScore,
-                            last_played: new Date().toISOString(),
-                            difficulties_played: existingDifficulties
-                        });
-                    
-                    if (error) throw error;
-                }
-            } else {
-                // Update hanya difficulties jika skor tidak lebih tinggi
-                if (existingData && !existingDifficulties.includes(currentDifficulty)) {
-                    const { error } = await supabaseClient
-                        .from('leaderboard-bahlil')
-                        .update({
-                            difficulties_played: existingDifficulties,
-                            last_played: new Date().toISOString()
-                        })
-                        .eq('username', user.username);
-                    
-                    if (error) console.error('Error updating difficulties:', error);
-                }
-            }
+            showNotification("Skor berhasil disimpan!", "success");
             
         } catch (error) {
             console.error('Error saving score:', error);
+            saveScoreToPendingQueue();
+            showNotification("Skor disimpan offline, akan sync nanti", "info");
         }
     }
     
@@ -829,14 +897,162 @@ async function gameOver() {
     }, 800);
 }
 
+// Simpan skor ke localStorage
+function saveScoreToLocalStorage() {
+    const userStats = JSON.parse(localStorage.getItem('bahlilUserStats') || '{}');
+    
+    if (!userStats[user.username]) {
+        userStats[user.username] = {
+            totalScore: 0,
+            gamesPlayed: 0,
+            difficulties: [],
+            lastScores: []
+        };
+    }
+    
+    const userStat = userStats[user.username];
+    
+    // Update total skor (akumulasi)
+    userStat.totalScore += score;
+    userStat.gamesPlayed++;
+    
+    // Tambahkan difficulty jika belum ada
+    if (!userStat.difficulties.includes(currentDifficulty)) {
+        userStat.difficulties.push(currentDifficulty);
+    }
+    
+    // Simpan skor game ini
+    userStat.lastScores.unshift({
+        score: score,
+        difficulty: currentDifficulty,
+        timestamp: new Date().toISOString()
+    });
+    
+    // Simpan maks 10 game terakhir
+    if (userStat.lastScores.length > 10) {
+        userStat.lastScores = userStat.lastScores.slice(0, 10);
+    }
+    
+    localStorage.setItem('bahlilUserStats', JSON.stringify(userStats));
+}
+
+// Simpan skor ke Supabase dengan sistem akumulatif
+async function saveScoreToSupabase() {
+    // Ambil data user saat ini dari Supabase
+    const { data: existingData } = await supabaseClient
+        .from('leaderboard-bahlil')
+        .select('*')
+        .eq('username', user.username)
+        .maybeSingle();
+    
+    const userStats = JSON.parse(localStorage.getItem('bahlilUserStats') || '{}');
+    const userStat = userStats[user.username] || { totalScore: 0, difficulties: [] };
+    
+    const newTotalScore = userStat.totalScore;
+    let difficultiesArray = userStat.difficulties || [];
+    
+    // Pastikan difficulty saat ini ada dalam array
+    if (currentDifficulty && !difficultiesArray.includes(currentDifficulty)) {
+        difficultiesArray.push(currentDifficulty);
+    }
+    
+    if (existingData) {
+        // UPDATE - User sudah ada di leaderboard
+        const { error } = await supabaseClient
+            .from('leaderboard-bahlil')
+            .update({
+                total_score: newTotalScore,
+                last_game_score: score,
+                current_mode: currentDifficulty,
+                difficulties_played: difficultiesArray,
+                last_played: new Date().toISOString()
+            })
+            .eq('username', user.username);
+        
+        if (error) throw error;
+        
+        console.log('Score updated in Supabase');
+    } else {
+        // INSERT - User baru di leaderboard
+        const { error } = await supabaseClient
+            .from('leaderboard-bahlil')
+            .insert({
+                username: user.username,
+                total_score: newTotalScore,
+                last_game_score: score,
+                current_mode: currentDifficulty,
+                difficulties_played: difficultiesArray,
+                last_played: new Date().toISOString()
+            });
+        
+        if (error) throw error;
+        
+        console.log('Score inserted to Supabase');
+    }
+}
+
+// Simpan ke queue jika error
+function saveScoreToPendingQueue() {
+    const pendingScores = JSON.parse(localStorage.getItem('bahlilPendingScores') || '[]');
+    
+    pendingScores.push({
+        username: user.username,
+        score: score,
+        difficulty: currentDifficulty,
+        timestamp: new Date().toISOString()
+    });
+    
+    localStorage.setItem('bahlilPendingScores', JSON.stringify(pendingScores));
+}
+
+// Sync pending scores
+async function syncPendingScores() {
+    const pendingScores = JSON.parse(localStorage.getItem('bahlilPendingScores') || '[]');
+    
+    if (pendingScores.length === 0 || !user) return;
+    
+    try {
+        for (const pending of pendingScores) {
+            if (pending.username === user.username) {
+                // Recalculate total score for this pending score
+                const userStats = JSON.parse(localStorage.getItem('bahlilUserStats') || '{}');
+                
+                if (!userStats[user.username]) {
+                    userStats[user.username] = {
+                        totalScore: pending.score,
+                        difficulties: [pending.difficulty]
+                    };
+                } else {
+                    userStats[user.username].totalScore += pending.score;
+                    if (!userStats[user.username].difficulties.includes(pending.difficulty)) {
+                        userStats[user.username].difficulties.push(pending.difficulty);
+                    }
+                }
+                
+                localStorage.setItem('bahlilUserStats', JSON.stringify(userStats));
+                
+                // Save to Supabase
+                await saveScoreToSupabase();
+            }
+        }
+        
+        // Clear pending scores setelah berhasil sync
+        localStorage.removeItem('bahlilPendingScores');
+        console.log('Pending scores synced successfully');
+        
+    } catch (error) {
+        console.error('Error syncing pending scores:', error);
+    }
+}
+
 // Start game with selected difficulty
 function startGameWithDifficulty(difficulty) {
     currentDifficulty = difficulty;
     const settings = difficulties[difficulty];
     
-    // Reset game state
+    // Reset game state (hanya skor game ini, bukan total)
     gameArea.innerHTML = "";
-    score = 0;
+    score = 0; // Reset skor game ini saja
     lives = settings.lives;
     active = true;
     resetCombo();
@@ -892,6 +1108,10 @@ async function handleLogin(username, password) {
         
         if (user) {
             localStorage.setItem('bahlilUser', JSON.stringify(user));
+            
+            // Sync pending scores setelah login
+            await syncPendingScores();
+            
             return { success: true, user };
         } else {
             return { success: false, message: "Username atau password salah" };
@@ -926,28 +1146,30 @@ async function handleRegister(username, password) {
     }
 }
 
-// Load leaderboard
+// Load leaderboard dengan realtime updates
 async function loadLeaderboard() {
     try {
+        showNotification("Memuat leaderboard...", "info");
+        
         const { data, error } = await supabaseClient
             .from('leaderboard-bahlil')
             .select('*')
-            .order('score', { ascending: false })
-            .limit(15);
+            .order('total_score', { ascending: false })
+            .limit(20);
         
         if (error) throw error;
         
         let html = '';
         
         if (data && data.length > 0) {
-            html = '<table class="leaderboard-table">';
-            html += '<thead><tr><th>Rank</th><th>Username</th><th>Total Skor</th><th>Mode Dimainkan</th></tr></thead>';
-            html += '<tbody>';
+            html = '<div class="leaderboard-list">';
             
             data.forEach((item, index) => {
-                const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
+                const rank = index + 1;
+                const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : '';
+                const isCurrentUser = user && user.username === item.username;
                 
-                // Format difficulties yang dimainkan
+                // Format difficulties
                 let difficultiesText = '-';
                 if (item.difficulties_played && Array.isArray(item.difficulties_played)) {
                     const uniqueDifficulties = [...new Set(item.difficulties_played)];
@@ -959,20 +1181,66 @@ async function loadLeaderboard() {
                         .join(' ');
                 }
                 
-                html += `<tr>
-                    <td class="${rankClass}">${index + 1}</td>
-                    <td class="${rankClass}">${item.username}</td>
-                    <td class="${rankClass}">${item.score.toLocaleString()}</td>
-                    <td>${difficultiesText}</td>
-                </tr>`;
+                // Format last played time
+                let lastPlayedText = 'Baru saja';
+                if (item.last_played) {
+                    const lastPlayed = new Date(item.last_played);
+                    const now = new Date();
+                    const diffMinutes = Math.floor((now - lastPlayed) / (1000 * 60));
+                    
+                    if (diffMinutes < 1) lastPlayedText = 'Baru saja';
+                    else if (diffMinutes < 60) lastPlayedText = `${diffMinutes} menit lalu`;
+                    else if (diffMinutes < 1440) lastPlayedText = `${Math.floor(diffMinutes / 60)} jam lalu`;
+                    else lastPlayedText = `${Math.floor(diffMinutes / 1440)} hari lalu`;
+                }
+                
+                html += `
+                <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
+                    <div class="leaderboard-rank ${rankClass}">${rank}</div>
+                    <div class="leaderboard-info">
+                        <div class="leaderboard-header">
+                            <span class="leaderboard-username">
+                                ${item.username}
+                                ${isCurrentUser ? '<span class="you-badge">(Anda)</span>' : ''}
+                            </span>
+                            <span class="last-played">${lastPlayedText}</span>
+                        </div>
+                        <div class="leaderboard-scores">
+                            <div class="score-item">
+                                <span class="score-label">Total:</span>
+                                <span class="score-value">${item.total_score.toLocaleString()}</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="score-label">Terakhir:</span>
+                                <span class="score-value">${item.last_game_score.toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div class="leaderboard-modes">
+                            ${difficultiesText}
+                        </div>
+                    </div>
+                </div>`;
             });
             
-            html += '</tbody></table>';
+            html += '</div>';
         } else {
             html = '<p style="text-align: center; color: #ccc; padding: 30px 0;">Belum ada data leaderboard</p>';
         }
         
         document.getElementById('leaderboardContent').innerHTML = html;
+        
+        // Tambahkan refresh button
+        if (!document.getElementById('refreshLeaderboardBtn')) {
+            const refreshBtn = document.createElement('button');
+            refreshBtn.id = 'refreshLeaderboardBtn';
+            refreshBtn.className = 'refresh-btn';
+            refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+            refreshBtn.addEventListener('click', loadLeaderboard);
+            
+            const leaderboardContent = document.getElementById('leaderboardContent');
+            leaderboardContent.parentNode.insertBefore(refreshBtn, leaderboardContent.nextSibling);
+        }
+        
     } catch (error) {
         console.error('Error loading leaderboard:', error);
         document.getElementById('leaderboardContent').innerHTML = 
@@ -1120,9 +1388,11 @@ function setupEventListeners() {
             const result = await handleLogin(username, password);
             if (result.success) {
                 user = result.user;
+                updateAuthUI();
                 authScreen.style.display = "none";
                 loadLeaderboard();
                 leaderboardScreen.style.display = "flex";
+                showNotification("Login berhasil!", "success");
             } else {
                 alert(result.message);
             }
@@ -1142,9 +1412,11 @@ function setupEventListeners() {
             const result = await handleRegister(username, password);
             if (result.success) {
                 user = result.user;
+                updateAuthUI();
                 authScreen.style.display = "none";
                 loadLeaderboard();
                 leaderboardScreen.style.display = "flex";
+                showNotification("Pendaftaran berhasil!", "success");
             } else {
                 alert(result.message);
             }
@@ -1191,7 +1463,21 @@ function setupEventListeners() {
     window.addEventListener('orientationchange', () => {
         setTimeout(adjustUIForPortrait, 100);
     });
+    
+    // Auto refresh leaderboard every 30 seconds if open
+    setInterval(() => {
+        if (leaderboardScreen.style.display === 'flex') {
+            loadLeaderboard();
+        }
+    }, 30000);
 }
 
 // Initialize game when page loads
 window.addEventListener('DOMContentLoaded', initGame);
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (realtimeSubscription) {
+        supabaseClient.removeSubscription(realtimeSubscription);
+    }
+});
