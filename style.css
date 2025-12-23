@@ -29,7 +29,37 @@ body {
     touch-action: none;
 }
 
-/* Background dengan efek partikel */
+/* Performance optimizations */
+.fruit, .bomb, .fruit-half, .bomb-explosion, .cut-effect {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+
+/* GPU Accelerated animations */
+@keyframes floatUp {
+    0% {
+        transform: translateY(0) scale(1) translateZ(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-50px) scale(1.2) translateZ(0);
+        opacity: 0;
+    }
+}
+
+/* iOS optimizations */
+.fruit img, .bomb img {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    image-rendering: -webkit-optimize-contrast;
+}
+
+/* Background dengan efek partikel (simplified for mobile) */
 #particles {
     position: fixed;
     top: 0;
@@ -559,7 +589,7 @@ body {
     opacity: 1;
 }
 
-/* Trail Effect untuk kursor */
+/* Trail Effect untuk kursor (disabled for mobile) */
 #cursorTrail {
     position: fixed;
     top: 0;
@@ -603,6 +633,8 @@ body {
     cursor: crosshair;
     overflow: hidden;
     z-index: 10;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
 }
 
 /* Buah */
@@ -616,6 +648,7 @@ body {
     pointer-events: auto;
     filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.6));
     transition: transform 0.1s;
+    will-change: transform, opacity;
 }
 
 .fruit img {
@@ -624,6 +657,7 @@ body {
     object-fit: cover;
     border-radius: 50%;
     border: 3px solid rgba(255, 255, 255, 0.9);
+    image-rendering: -webkit-optimize-contrast;
 }
 
 /* Bom */
@@ -636,6 +670,7 @@ body {
     z-index: 20;
     animation: bombWarning 0.8s infinite alternate;
     filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.7));
+    will-change: transform, opacity;
 }
 
 @keyframes bombWarning {
@@ -657,6 +692,7 @@ body {
     pointer-events: none;
     z-index: 15;
     filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.4));
+    will-change: transform, opacity;
 }
 
 .fruit-half img {
@@ -1070,15 +1106,16 @@ body {
     z-index: 60;
     animation: floatUp 1s forwards;
     transition: font-size 0.3s ease;
+    will-change: transform, opacity;
 }
 
 @keyframes floatUp {
     0% {
-        transform: translateY(0) scale(1);
+        transform: translateY(0) scale(1) translateZ(0);
         opacity: 1;
     }
     100% {
-        transform: translateY(-50px) scale(1.2);
+        transform: translateY(-50px) scale(1.2) translateZ(0);
         opacity: 0;
     }
 }
@@ -1256,43 +1293,45 @@ body {
         padding: 12px 25px !important;
     }
     
-    /* Fruit and bomb size */
+    /* Fruit and bomb size - optimized for mobile */
     .fruit, .bomb {
-        width: 70px !important;
-        height: 70px !important;
+        width: 65px !important;
+        height: 65px !important;
     }
     
     .fruit img, .bomb img {
-        width: 70px !important;
-        height: 70px !important;
+        width: 65px !important;
+        height: 65px !important;
         border-width: 2px !important;
+        image-rendering: -webkit-optimize-contrast !important;
     }
     
     .fruit-half img {
-        width: 70px !important;
-        height: 70px !important;
+        width: 65px !important;
+        height: 65px !important;
         border-width: 1px !important;
     }
     
     /* Cut effect size */
     .cut-effect {
-        width: 100px !important;
-        height: 100px !important;
-        margin-left: -50px !important;
-        margin-top: -50px !important;
+        width: 90px !important;
+        height: 90px !important;
+        margin-left: -45px !important;
+        margin-top: -45px !important;
     }
     
-    /* Bomb explosion size */
+    /* Bomb explosion size - reduced for performance */
     .bomb-explosion {
-        width: 250px !important;
-        height: 250px !important;
-        margin-left: -125px !important;
-        margin-top: -125px !important;
+        width: 200px !important;
+        height: 200px !important;
+        margin-left: -100px !important;
+        margin-top: -100px !important;
+        filter: blur(3px) !important;
     }
     
     /* Floating score */
     .floating-score {
-        font-size: 1.2rem !important;
+        font-size: 1.1rem !important;
     }
     
     /* Auth and guide screens */
@@ -1356,42 +1395,62 @@ body {
         max-width: 90% !important;
         display: block !important;
     }
+    
+    /* Disable trail effect on mobile for better performance */
+    #cursorTrail {
+        display: none !important;
+    }
+    
+    /* Reduce particles on mobile */
+    #particles {
+        opacity: 0.5;
+    }
+    
+    /* Optimize animations for mobile */
+    .bomb {
+        animation: bombWarning 1s infinite alternate !important;
+    }
+    
+    .logo-icon {
+        animation: pulse 3s infinite !important;
+    }
 }
 
 /* Perbaikan untuk layar sangat kecil */
 @media (max-width: 360px) {
     .main-title {
-        font-size: 2.5rem !important;
+        font-size: 2.2rem !important;
     }
     
     .difficulty-title {
-        font-size: 1.6rem !important;
+        font-size: 1.5rem !important;
     }
     
     .diff-btn {
-        padding: 12px 15px !important;
-        font-size: 1rem !important;
+        padding: 10px 12px !important;
+        font-size: 0.9rem !important;
     }
     
     #score {
-        font-size: 1.8rem !important;
-        min-width: 90px !important;
+        font-size: 1.6rem !important;
+        min-width: 80px !important;
+        padding: 4px 12px !important;
     }
     
     .heart {
-        width: 22px !important;
-        height: 22px !important;
+        width: 20px !important;
+        height: 20px !important;
     }
     
     /* Fruit size for very small screens */
     .fruit, .bomb {
-        width: 60px !important;
-        height: 60px !important;
+        width: 55px !important;
+        height: 55px !important;
     }
     
     .fruit img, .bomb img {
-        width: 60px !important;
-        height: 60px !important;
+        width: 55px !important;
+        height: 55px !important;
     }
     
     /* Leaderboard adjustments */
@@ -1400,63 +1459,86 @@ body {
     }
     
     .leaderboard-title {
-        font-size: 2rem !important;
+        font-size: 1.8rem !important;
+    }
+    
+    .leaderboard-rank {
+        width: 35px !important;
+        height: 35px !important;
+        font-size: 1rem !important;
+    }
+    
+    /* Disable all non-essential animations for very small screens */
+    .cut-visual, .bomb-particle {
+        display: none !important;
     }
 }
 
 /* Perbaikan untuk landscape mode dengan tinggi terbatas */
 @media (orientation: landscape) and (max-height: 600px) {
     #header {
-        padding: 8px 15px !important;
-        height: 50px !important;
+        padding: 5px 10px !important;
+        height: 40px !important;
     }
     
     .logo-text {
+        font-size: 1rem !important;
+    }
+    
+    .logo-icon {
         font-size: 1.2rem !important;
     }
     
     #gameUI {
-        top: 60px !important;
+        top: 50px !important;
+        padding: 0 10px !important;
     }
     
     #score {
-        font-size: 1.8rem !important;
-        padding: 5px 15px !important;
+        font-size: 1.5rem !important;
+        padding: 3px 10px !important;
+        min-width: 70px !important;
     }
     
     #comboContainer {
-        top: 120px !important;
+        top: 100px !important;
     }
     
     #comboText {
-        font-size: 1.4rem !important;
+        font-size: 1.2rem !important;
     }
     
     .fruit, .bomb {
-        width: 60px !important;
-        height: 60px !important;
+        width: 50px !important;
+        height: 50px !important;
     }
     
     .fruit img, .bomb img {
-        width: 60px !important;
-        height: 60px !important;
+        width: 50px !important;
+        height: 50px !important;
     }
     
     /* Hide mobile instruction in landscape */
     #mobileInstruction {
         display: none !important;
     }
+    
+    /* Disable particles in landscape for performance */
+    #particles {
+        display: none;
+    }
 }
 
 /* Loading screen adjustment for mobile */
 @media (max-width: 768px) {
     .loading-spinner {
-        width: 50px;
-        height: 50px;
+        width: 40px;
+        height: 40px;
+        border-width: 3px;
     }
     
     .loading div {
-        font-size: 1rem;
+        font-size: 0.9rem;
     }
 }
 
@@ -1484,4 +1566,20 @@ html, body {
 @keyframes fadeOut {
     from { opacity: 1; }
     to { opacity: 0; }
+}
+
+/* Performance class untuk disable efek saat game aktif */
+.perf-mode {
+    /* Disable beberapa efek untuk meningkatkan performa */
+    .trail-dot, .cut-visual {
+        display: none !important;
+    }
+    
+    .bomb-particle {
+        opacity: 0.5 !important;
+    }
+    
+    #particles {
+        opacity: 0.3 !important;
+    }
 }
