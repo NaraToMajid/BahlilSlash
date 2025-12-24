@@ -63,7 +63,7 @@ const audioElements = [];
 const MAX_ON_SCREEN_FRUITS = 15;
 const MIN_FPS_THRESHOLD = 30;
 
-// Difficulty settings - optimized for mobile
+// Difficulty settings - CHALLENGING PROGRESSION
 const difficulties = {
     baby: {
         name: "BABY",
@@ -76,66 +76,84 @@ const difficulties = {
     },
     easy: {
         name: "MUDAH",
-        fruitSpawnRate: 1200,
-        bombChance: 0.1,
-        lives: 6,
-        fruitSpeed: 12,
-        maxFruits: 6,
-        scoreMultiplier: 1.2
+        fruitSpawnRate: 700,       // LEBIH CEPAT! (dari 1200)
+        bombChance: 0.25,          // LEBIH BANYAK BOM! (dari 0.1)
+        lives: 3,                  // LEBIH SEDIKIT NYAWA! (dari 6)
+        fruitSpeed: 18,            // LEBIH CEPAT! (dari 12)
+        maxFruits: 8,              // LEBIH BANYAK BUAH! (dari 6)
+        scoreMultiplier: 1.5       // LEBIH BANYAK SCORE! (dari 1.2)
     },
     normal: {
         name: "NORMAL",
-        fruitSpawnRate: 1000,
-        bombChance: 0.15,
-        lives: 5,
-        fruitSpeed: 14,
-        maxFruits: 8,
-        scoreMultiplier: 1.5
-    },
-    medium: {
-        name: "MENENGAH",
-        fruitSpawnRate: 850,
-        bombChance: 0.2,
-        lives: 4,
-        fruitSpeed: 16,
+        fruitSpawnRate: 600,       // Dari 1000 ke 600
+        bombChance: 0.3,           // Dari 0.15 ke 0.3
+        lives: 3,
+        fruitSpeed: 20,            // Dari 14 ke 20
         maxFruits: 10,
         scoreMultiplier: 2
     },
-    hard: {
-        name: "SULIT",
-        fruitSpawnRate: 700,
-        bombChance: 0.25,
+    medium: {
+        name: "MENENGAH",
+        fruitSpawnRate: 500,       // Dari 850 ke 500
+        bombChance: 0.35,          // Dari 0.2 ke 0.35
         lives: 3,
-        fruitSpeed: 18,
+        fruitSpeed: 22,
         maxFruits: 12,
         scoreMultiplier: 3
     },
-    "very-hard": {
-        name: "SANGAT SULIT",
-        fruitSpawnRate: 600,
-        bombChance: 0.3,
-        lives: 2,
-        fruitSpeed: 20,
+    hard: {
+        name: "SULIT",
+        fruitSpawnRate: 400,       // Dari 700 ke 400
+        bombChance: 0.4,           // Dari 0.25 ke 0.4
+        lives: 3,
+        fruitSpeed: 24,
         maxFruits: 14,
         scoreMultiplier: 5
     },
+    "very-hard": {
+        name: "SANGAT SULIT",
+        fruitSpawnRate: 350,       // Dari 600 ke 350
+        bombChance: 0.45,          // Dari 0.3 ke 0.45
+        lives: 2,
+        fruitSpeed: 26,
+        maxFruits: 15,
+        scoreMultiplier: 7
+    },
     nightmare: {
         name: "MIMPI BURUK",
-        fruitSpawnRate: 500,
-        bombChance: 0.35,
+        fruitSpawnRate: 300,       // Dari 500 ke 300
+        bombChance: 0.5,           // Dari 0.35 ke 0.5
         lives: 2,
-        fruitSpeed: 22,
+        fruitSpeed: 28,
         maxFruits: 15,
-        scoreMultiplier: 8
+        scoreMultiplier: 10
     },
     impossible: {
         name: "TIDAK MUNGKIN",
-        fruitSpawnRate: 400,
-        bombChance: 0.4,
+        fruitSpawnRate: 250,       // Dari 400 ke 250
+        bombChance: 0.55,          // Dari 0.4 ke 0.55
         lives: 1,
-        fruitSpeed: 24,
+        fruitSpeed: 30,
         maxFruits: 15,
-        scoreMultiplier: 10
+        scoreMultiplier: 15
+    },
+    hell: {
+        name: "NERAKA",
+        fruitSpawnRate: 200,
+        bombChance: 0.6,           // 60% bom!
+        lives: 1,
+        fruitSpeed: 32,
+        maxFruits: 15,
+        scoreMultiplier: 20
+    },
+    god: {
+        name: "DEWA",
+        fruitSpawnRate: 150,       // HANYA 150ms per spawn!
+        bombChance: 0.65,          // 65% bom!
+        lives: 1,
+        fruitSpeed: 35,
+        maxFruits: 15,
+        scoreMultiplier: 30
     }
 };
 
