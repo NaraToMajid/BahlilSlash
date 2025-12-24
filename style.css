@@ -324,6 +324,8 @@ body {
 .very-hard { background: linear-gradient(135deg, #D500F9, #AA00FF); }
 .nightmare { background: linear-gradient(135deg, #7B1FA2, #4A148C); }
 .impossible { background: linear-gradient(135deg, #000, #B71C1C); }
+.hell { background: linear-gradient(135deg, #FF0000, #8B0000); }
+.god { background: linear-gradient(135deg, #FFD700, #FFA500); }
 
 .diff-btn:hover {
     transform: translateX(10px);
